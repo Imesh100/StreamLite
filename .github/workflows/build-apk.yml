@@ -36,7 +36,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          grep -E "^e: |^w: .*error|error:|What went wrong|Execution failed|AAPT|resource .* not found|Android resource|^> " build.log | head -50 > errs.txt || true
+          grep -E "^e: |error:|What went wrong|Caused by|requires|Dependency|minSdk|compileSdk|Android Gradle|AAPT|resource .* not found|FAILED" build.log | grep -v "^> Task" | head -40 > errs.txt || true
           [ -s errs.txt ] || tail -50 build.log > errs.txt
           {
             echo "Available ffmpeg decoder versions:"
