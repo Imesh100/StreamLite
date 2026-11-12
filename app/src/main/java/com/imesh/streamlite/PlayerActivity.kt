@@ -395,7 +395,12 @@ class PlayerActivity : AppCompatActivity() {
 
         // The buffer is limited by size in MB (your setting). Once it is full the app stops
         // downloading, which lets the radio idle and saves power.
-        val targetBytes = prefBufferMb * 1024 * 1024
+        // Never ask for more buffer than half of what this device allows an app to use.
+        val am = getSystemService(ACTIVITY_SERVICE) as android.app.ActivityManager
+        val capMb = (am.largeMemoryClass / 2).coerceAtLeast(16)
+        val bufferMb = minOf(prefBufferMb, capMb)
+        if (bufferMb < prefBufferMb) DebugLog.log("buffer limited to $bufferMb MB (device memory)")
+        val targetBytes = bufferMb * 1024 * 1024
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(30 * 60 * 1000, 30 * 60 * 1000, 2_500, 5_000)
             .setTargetBufferBytes(targetBytes)
@@ -406,6 +411,8 @@ class PlayerActivity : AppCompatActivity() {
         val renderers = DefaultRenderersFactory(this)
             .setEnableDecoderFallback(true)
             .setMediaCodecSelector(Decoders.selector(prefDecoderMode))
+            // Use the built-in software decoders for audio the device itself cannot decode (E-AC3, DTS...)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
         val p = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setTrackSelector(trackSelector)
@@ -459,7 +466,7 @@ class PlayerActivity : AppCompatActivity() {
 
             override fun onTracksChanged(tracks: Tracks) {
                 logTracks(tracks)
-                checkVideoSupport(tracks)
+                checkSupport(tracks)
             }
 
             override fun onRenderedFirstFrame() {
@@ -582,19 +589,27 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
-    /** Tells the user plainly when the device has no decoder for the picture (sound-only playback). */
-    private fun checkVideoSupport(tracks: Tracks) {
-        val groups = tracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
-        if (groups.isEmpty()) return
-        val anyHandled = groups.any { g -> (0 until g.length).any { g.getTrackSupport(it) == C.FORMAT_HANDLED } }
-        if (anyHandled) return
-        val g = groups[0]
-        val f = g.getTrackFormat(0)
-        val codecName = f.sampleMimeType?.substringAfter('/')?.uppercase(Locale.US) ?: "this"
-        notice(
-            "No picture: this device can't decode $codecName ${f.width}x${f.height} " +
-                "(${supportName(g.getTrackSupport(0))}). Sound only. Try Settings > Compatibility or another quality."
-        )
+    /** Tells the user plainly when the device cannot decode the picture or the sound. */
+    private fun checkSupport(tracks: Tracks) {
+        val msgs = ArrayList<String>()
+        for (type in intArrayOf(C.TRACK_TYPE_VIDEO, C.TRACK_TYPE_AUDIO)) {
+            val groups = tracks.groups.filter { it.type == type }
+            if (groups.isEmpty()) continue
+            val anyHandled = groups.any { g -> (0 until g.length).any { g.getTrackSupport(it) == C.FORMAT_HANDLED } }
+            if (anyHandled) continue
+            val g = groups[0]
+            val f = g.getTrackFormat(0)
+            val codecName = f.sampleMimeType?.substringAfter('/')?.uppercase(Locale.US) ?: "this format"
+            msgs.add(
+                if (type == C.TRACK_TYPE_VIDEO) {
+                    "No picture: this device can't decode $codecName ${f.width}x${f.height} (${supportName(g.getTrackSupport(0))})."
+                } else {
+                    "No sound: this device can't decode $codecName audio (${supportName(g.getTrackSupport(0))})."
+                }
+            )
+        }
+        if (msgs.isEmpty()) return
+        notice(msgs.joinToString("\n") + "\nTry Settings > Compatibility, or pick another audio or video track.")
     }
 
     private val hideNotice = Runnable { if (!retryPending) banner.visibility = View.GONE }
@@ -1585,9 +1600,13 @@ class PlayerActivity : AppCompatActivity() {
                 if (vBr > 0) sb.append(' ').append(Fmt.f("%.1f Mbps", vBr / 1e6))
             }
             sb.append('\n')
-            sb.append("FPS       : ").append(Fmt.f("%.1f", fps))
-            if (vf != null && vf.frameRate > 0) sb.append(Fmt.f(" (source %.0f)", vf.frameRate.toDouble()))
-            sb.append("  dropped ").append(droppedTotal).append('\n')
+            if (statsVisible) {
+                sb.append("FPS       : ").append(Fmt.f("%.1f", fps))
+                if (vf != null && vf.frameRate > 0) sb.append(Fmt.f(" (source %.0f)", vf.frameRate.toDouble()))
+                sb.append("  dropped ").append(droppedTotal).append('\n')
+            } else {
+                sb.append("FPS       : (open Stats to measure)  dropped ").append(droppedTotal).append('\n')
+            }
         }
         if (af != null) {
             sb.append("Audio     : ").append(codec(af) ?: "?")

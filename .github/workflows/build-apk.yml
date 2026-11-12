@@ -39,6 +39,9 @@ jobs:
           grep -E "^e: |^w: .*error|error:|What went wrong|Execution failed|AAPT|resource .* not found|Android resource|^> " build.log | head -50 > errs.txt || true
           [ -s errs.txt ] || tail -50 build.log > errs.txt
           {
+            echo "Available ffmpeg decoder versions:"
+            curl -sS --max-time 20 https://repo1.maven.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/maven-metadata.xml | grep -o '<version>[^<]*' | sed 's/<version>//' | tr '\n' ' ' || true
+            echo
             echo "Commit ${GITHUB_SHA}"
             echo '```'
             cut -c1-400 errs.txt

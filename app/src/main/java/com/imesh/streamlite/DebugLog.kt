@@ -45,6 +45,12 @@ object DebugLog {
         if (playerInfo.isNotBlank()) {
             sb.append("\n--- Player ---\n").append(playerInfo).append('\n')
         }
+        val ffmpeg = try {
+            Class.forName("androidx.media3.decoder.ffmpeg.FfmpegLibrary").getMethod("isAvailable").invoke(null) == true
+        } catch (e: Throwable) {
+            false
+        }
+        sb.append("FFmpeg audio decoder: ").append(if (ffmpeg) "available" else "NOT available").append('\n')
         sb.append("Compat  decoder=").append(c.prefDecoderMode).append(" textureView=").append(c.prefTextureView).append('\n')
         sb.append("\n--- Decoders on this device ---\n").append(Decoders.report())
         sb.append("\n--- Log ---\n").append(dump()).append('\n')

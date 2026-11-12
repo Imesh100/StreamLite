@@ -11,8 +11,8 @@ android {
         applicationId = "com.imesh.streamlite"
         minSdk = 21
         targetSdk = 34
-        versionCode = 3
-        versionName = "2.1"
+        versionCode = 4
+        versionName = "2.2"
     }
 
     signingConfigs {
@@ -60,4 +60,6 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-smoothstreaming:$media3")
     implementation("androidx.media3:media3-exoplayer-rtsp:$media3")
     implementation("androidx.media3:media3-ui:$media3")
+    // Software audio decoders (E-AC3, AC3, DTS, TrueHD, ...) for TVs that lack them
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:$media3+1")
 }
