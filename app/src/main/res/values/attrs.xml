@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="slBg" format="color" />
+    <attr name="slCard" format="color" />
+    <attr name="slCardHigh" format="color" />
+    <attr name="slOutline" format="color" />
+    <attr name="slText2" format="color" />
+</resources>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sl_accent">#5B9DFF</color>
+    <color name="sl_accent_light">#2F6FED</color>
+    <color name="sl_on_accent_dark">#07204A</color>
+
+    <color name="sl_bg_dark">#0E1014</color>
+    <color name="sl_card_dark">#171A21</color>
+    <color name="sl_card_high_dark">#20242D</color>
+    <color name="sl_outline_dark">#2A2F3A</color>
+    <color name="sl_text_dark">#ECEFF4</color>
+    <color name="sl_text2_dark">#9AA4B5</color>
+
+    <color name="sl_bg_amoled">#000000</color>
+    <color name="sl_card_amoled">#0C0D10</color>
+    <color name="sl_card_high_amoled">#16181D</color>
+    <color name="sl_outline_amoled">#23262E</color>
+
+    <color name="sl_bg_light">#F3F5F9</color>
+    <color name="sl_card_light">#FFFFFF</color>
+    <color name="sl_card_high_light">#E9EDF4</color>
+    <color name="sl_outline_light">#DCE1EA</color>
+    <color name="sl_text_light">#14181F</color>
+    <color name="sl_text2_light">#5A6475</color>
+
+    <color name="sl_scrim">#CC000000</color>
+</resources>

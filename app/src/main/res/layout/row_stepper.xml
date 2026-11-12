@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:paddingStart="4dp"
+    android:paddingEnd="4dp">
+
+    <TextView
+        android:id="@+id/stepLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="16sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/stepMinus"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="48dp"
+        android:layout_height="44dp"
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        android:minWidth="0dp"
+        android:padding="0dp"
+        android:text="−"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/stepValue"
+        android:layout_width="84dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textColor="?attr/colorPrimary"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/stepPlus"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="48dp"
+        android:layout_height="44dp"
+        android:insetLeft="0dp"
+        android:insetRight="0dp"
+        android:minWidth="0dp"
+        android:padding="0dp"
+        android:text="+"
+        android:textSize="20sp" />
+</LinearLayout>

@@ -1,79 +1,512 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/slBg"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="16dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="8dp">
+
+        <ImageButton
+            android:id="@+id/backBtn"
+            style="@style/SL.IconBtn"
+            android:contentDescription="Back"
+            android:src="@drawable/ic_back"
+            android:tint="?attr/colorOnSurface" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
+            android:layout_marginStart="6dp"
             android:text="Settings"
-            android:textColor="#FFFFFF"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="24sp"
             android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Video buffer size"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/bufValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textColor="#42A5F5"
-            android:textSize="20sp" />
-
-        <SeekBar
-            android:id="@+id/bufSeek"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="8 to 256 MB. A bigger buffer rides out bad connections but uses more RAM and downloads further ahead. When the buffer is full the app stops downloading, which saves battery. Applies the next time you start a video."
-            android:textColor="#B0B0B0"
-            android:textSize="13sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:text="Maximum video quality"
-            android:textColor="#FFFFFF"
-            android:textSize="16sp" />
-
-        <Spinner
-            android:id="@+id/resSpinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Lower quality uses less battery and data. Applies to adaptive streams (HLS/DASH). You can also pick a quality inside the player with the Video button."
-            android:textColor="#B0B0B0"
-            android:textSize="13sp" />
-
-        <Button
-            android:id="@+id/clearHistory"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
-            android:text="Clear recent links" />
     </LinearLayout>
-</ScrollView>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="24dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp">
+
+            <!-- Appearance -->
+            <TextView
+                style="@style/SL.Section"
+                android:text="Appearance" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/SL.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/SL.Label"
+                        android:text="Theme" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/themeGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <Button
+                            android:id="@+id/themeSystem"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="System" />
+
+                        <Button
+                            android:id="@+id/themeDark"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Dark" />
+
+                        <Button
+                            android:id="@+id/themeAmoled"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="AMOLED" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="AMOLED is pure black. It saves battery on OLED screens." />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Playback -->
+            <TextView
+                style="@style/SL.Section"
+                android:text="Playback" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/SL.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/SL.Label"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="Video buffer size" />
+
+                        <TextView
+                            android:id="@+id/bufValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/bufSlider"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:stepSize="8"
+                        android:valueFrom="8"
+                        android:valueTo="256" />
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="0dp"
+                        android:text="A bigger buffer rides out bad connections but uses more memory. When it is full the app stops downloading, which saves battery. Applies the next time a video starts." />
+
+                    <LinearLayout
+                        android:id="@+id/resRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:minHeight="52dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/SL.Label"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="Maximum video quality" />
+
+                        <TextView
+                            android:id="@+id/resValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swResume"
+                        style="@style/SL.Switch"
+                        android:text="Resume where you left off" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swReconnect"
+                        style="@style/SL.Switch"
+                        android:text="Auto-reconnect when the network drops" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swPip"
+                        style="@style/SL.Switch"
+                        android:text="Picture-in-picture when you press Home" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swFollow"
+                        style="@style/SL.Switch"
+                        android:text="Rotate to match the video automatically" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swClip"
+                        style="@style/SL.Switch"
+                        android:text="Offer copied links when the app opens" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Subtitles -->
+            <TextView
+                style="@style/SL.Section"
+                android:text="Subtitles" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/SL.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="96dp"
+                        android:background="@drawable/bg_preview">
+
+                        <TextView
+                            android:id="@+id/subPreview"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="bottom|center_horizontal"
+                            android:layout_marginBottom="10dp"
+                            android:padding="4dp"
+                            android:text="This is how subtitles look"
+                            android:textColor="#FFFFFF" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/SL.Label"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="Size" />
+
+                        <TextView
+                            android:id="@+id/subSizeValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/subSize"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:stepSize="10"
+                        android:valueFrom="50"
+                        android:valueTo="250" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            style="@style/SL.Label"
+                            android:layout_width="0dp"
+                            android:layout_weight="1"
+                            android:text="Height from bottom" />
+
+                        <TextView
+                            android:id="@+id/subPosValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="?attr/colorPrimary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <com.google.android.material.slider.Slider
+                        android:id="@+id/subPos"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:stepSize="1"
+                        android:valueFrom="0"
+                        android:valueTo="30" />
+
+                    <TextView
+                        style="@style/SL.Label"
+                        android:text="Colour" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/subColorGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <Button
+                            android:id="@+id/subC0"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Aa" />
+
+                        <Button
+                            android:id="@+id/subC1"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Aa" />
+
+                        <Button
+                            android:id="@+id/subC2"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Aa" />
+
+                        <Button
+                            android:id="@+id/subC3"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Aa" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        style="@style/SL.Label"
+                        android:layout_marginTop="14dp"
+                        android:text="Style" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/subStyleGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <Button
+                            android:id="@+id/subS0"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Outline" />
+
+                        <Button
+                            android:id="@+id/subS1"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Shadow" />
+
+                        <Button
+                            android:id="@+id/subS2"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Box" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:hint="Preferred audio language (e.g. en, si, ta)">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/audioLang"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textNoSuggestions"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:hint="Preferred subtitle language (e.g. en)">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/textLang"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textNoSuggestions"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swAutoSubs"
+                        style="@style/SL.Switch"
+                        android:layout_marginTop="6dp"
+                        android:text="Look for a subtitle file next to the video" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Data -->
+            <TextView
+                style="@style/SL.Section"
+                android:text="Data usage" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/SL.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="0dp"
+                        android:text="Last 7 days of streaming" />
+
+                    <com.imesh.streamlite.BarChartView
+                        android:id="@+id/usageChart"
+                        android:layout_width="match_parent"
+                        android:layout_height="150dp"
+                        android:layout_marginTop="6dp" />
+
+                    <TextView
+                        android:id="@+id/usageText"
+                        style="@style/SL.Label"
+                        android:layout_marginTop="10dp"
+                        android:lineSpacingExtra="4dp"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Tools -->
+            <TextView
+                style="@style/SL.Section"
+                android:text="Tools" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/SL.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDebug"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Copy debug report"
+                        app:icon="@drawable/ic_copy" />
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:text="Copies device info and recent player events (links are shortened, headers are never included). Paste it into a chat if something goes wrong." />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnClear"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:text="Clear recent links (keeps favorites)"
+                        app:icon="@drawable/ic_delete" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnResetUsage"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Reset data usage"
+                        app:icon="@drawable/ic_timer" />
+
+                    <TextView
+                        android:id="@+id/versionText"
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="14dp"
+                        android:gravity="center" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

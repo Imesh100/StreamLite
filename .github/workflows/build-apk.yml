@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -24,7 +25,31 @@ jobs:
           gradle-version: "8.9"
 
       - name: Build release APK
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
+
+      - name: Report build errors
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          grep -E "^e: |^w: .*error|error:|What went wrong|Execution failed|AAPT|resource .* not found|Android resource|^> " build.log | head -50 > errs.txt || true
+          [ -s errs.txt ] || tail -50 build.log > errs.txt
+          {
+            echo "Commit ${GITHUB_SHA}"
+            echo '```'
+            cut -c1-400 errs.txt
+            echo '```'
+          } > errs.md
+          n=$(gh issue list --state open --search "Build errors in:title" --json number --jq '.[0].number' || true)
+          if [ -z "$n" ]; then
+            gh issue create --title "Build errors" --body-file errs.md
+          else
+            gh issue comment "$n" --body-file errs.md
+          fi
 
       - name: Name the APK
         run: cp app/build/outputs/apk/release/app-release.apk StreamLite.apk

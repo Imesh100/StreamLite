@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.StreamLite" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/sl_accent</item>
+        <item name="colorOnPrimary">@color/sl_on_accent_dark</item>
+        <item name="colorPrimaryContainer">#1E3A6E</item>
+        <item name="colorOnPrimaryContainer">#D6E3FF</item>
+        <item name="colorSecondaryContainer">#1E3A6E</item>
+        <item name="colorOnSecondaryContainer">#D6E3FF</item>
+        <item name="colorSurface">@color/sl_card_dark</item>
+        <item name="colorOnSurface">@color/sl_text_dark</item>
+        <item name="colorSurfaceVariant">@color/sl_card_high_dark</item>
+        <item name="colorOnSurfaceVariant">@color/sl_text2_dark</item>
+        <item name="colorOutline">@color/sl_outline_dark</item>
+        <item name="colorSurfaceContainerLow">@color/sl_card_dark</item>
+        <item name="colorSurfaceContainer">@color/sl_card_dark</item>
+        <item name="colorSurfaceContainerHigh">@color/sl_card_high_dark</item>
+        <item name="colorSurfaceContainerHighest">@color/sl_card_high_dark</item>
+        <item name="android:colorBackground">@color/sl_bg_dark</item>
+        <item name="android:windowBackground">@color/sl_bg_dark</item>
+        <item name="android:statusBarColor">@color/sl_bg_dark</item>
+        <item name="android:navigationBarColor">@color/sl_bg_dark</item>
+        <item name="slBg">@color/sl_bg_dark</item>
+        <item name="slCard">@color/sl_card_dark</item>
+        <item name="slCardHigh">@color/sl_card_high_dark</item>
+        <item name="slOutline">@color/sl_outline_dark</item>
+        <item name="slText2">@color/sl_text2_dark</item>
+    </style>
+</resources>
