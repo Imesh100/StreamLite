@@ -32,6 +32,7 @@ import android.provider.Settings
 import android.text.format.DateFormat
 import android.util.Rational
 import android.view.GestureDetector
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -145,6 +146,7 @@ class PlayerActivity : AppCompatActivity() {
     private var subtitleUri: Uri? = null
     private var subtitleMime: String? = null
     private var autoSubsTried = false
+    private var firstFrameDrawn = false
 
     // playback state
     private var resumePos = 0L
@@ -210,7 +212,11 @@ class PlayerActivity : AppCompatActivity() {
         entry = Store.touch(this, url)
         headers = Store.parseHeaders(entry.headers)
 
-        playerView = findViewById(R.id.playerView)
+        val surfaceView = findViewById<PlayerView>(R.id.playerView)
+        val textureView = findViewById<PlayerView>(R.id.playerViewTexture)
+        playerView = if (prefTextureView) textureView else surfaceView
+        (if (prefTextureView) surfaceView else textureView).visibility = View.GONE
+        playerView.visibility = View.VISIBLE
         gestureLayer = findViewById(R.id.gestureLayer)
         controls = findViewById(R.id.controls)
         titleText = findViewById(R.id.title)
@@ -282,6 +288,69 @@ class PlayerActivity : AppCompatActivity() {
         if (hasFocus) enterImmersive()
     }
 
+    /** TV remote and keyboard: OK / arrows / media keys. With controls visible the arrows move focus. */
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (!locked && !inPip) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> {
+                    togglePlay()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PLAY -> {
+                    player?.play()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                    player?.pause()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    seekRelative(30_000)
+                    flash("+30s")
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                    seekRelative(-30_000)
+                    flash("-30s")
+                    return true
+                }
+            }
+            if (!controlsVisible) {
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_LEFT -> {
+                        seekRelative(-10_000)
+                        flash("-10s")
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                        seekRelative(10_000)
+                        flash("+10s")
+                        return true
+                    }
+                    KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_DPAD_UP,
+                    KeyEvent.KEYCODE_DPAD_DOWN -> {
+                        showControls(true)
+                        btnPlay.requestFocus()
+                        return true
+                    }
+                }
+            } else {
+                scheduleHide()
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    private fun togglePlay() {
+        val p = player ?: return
+        if (p.playWhenReady && p.playbackState != Player.STATE_ENDED) {
+            p.pause()
+        } else {
+            if (p.playbackState == Player.STATE_ENDED) p.seekToDefaultPosition()
+            p.play()
+        }
+    }
+
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (prefAutoPip && !locked && player?.isPlaying == true) enterPip(false)
@@ -334,7 +403,10 @@ class PlayerActivity : AppCompatActivity() {
             .setBackBuffer(20_000, false)
             .build()
 
-        val p = ExoPlayer.Builder(this, DefaultRenderersFactory(this).setEnableDecoderFallback(true))
+        val renderers = DefaultRenderersFactory(this)
+            .setEnableDecoderFallback(true)
+            .setMediaCodecSelector(Decoders.selector(prefDecoderMode))
+        val p = ExoPlayer.Builder(this, renderers)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setTrackSelector(trackSelector)
             .setLoadControl(loadControl)
@@ -386,17 +458,13 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             override fun onTracksChanged(tracks: Tracks) {
-                var v = 0
-                var a = 0
-                var t = 0
-                for (g in tracks.groups) {
-                    when (g.type) {
-                        C.TRACK_TYPE_VIDEO -> v += g.length
-                        C.TRACK_TYPE_AUDIO -> a += g.length
-                        C.TRACK_TYPE_TEXT -> t += g.length
-                    }
-                }
-                DebugLog.log("tracks video=$v audio=$a text=$t")
+                logTracks(tracks)
+                checkVideoSupport(tracks)
+            }
+
+            override fun onRenderedFirstFrame() {
+                firstFrameDrawn = true
+                DebugLog.log("first video frame drawn")
             }
         })
 
@@ -495,6 +563,58 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    private fun supportName(s: Int) = when (s) {
+        C.FORMAT_HANDLED -> "handled"
+        C.FORMAT_EXCEEDS_CAPABILITIES -> "exceeds device limits"
+        C.FORMAT_UNSUPPORTED_DRM -> "drm unsupported"
+        C.FORMAT_UNSUPPORTED_SUBTYPE -> "profile/level unsupported"
+        else -> "no decoder"
+    }
+
+    private fun logTracks(tracks: Tracks) {
+        for (g in tracks.groups) {
+            if (g.type != C.TRACK_TYPE_VIDEO && g.type != C.TRACK_TYPE_AUDIO) continue
+            for (i in 0 until g.length) {
+                val f = g.getTrackFormat(i)
+                val kind = if (g.type == C.TRACK_TYPE_VIDEO) "video ${f.width}x${f.height}" else "audio ${f.channelCount}ch"
+                DebugLog.log("$kind ${f.sampleMimeType} codecs=${f.codecs} -> ${supportName(g.getTrackSupport(i))}")
+            }
+        }
+    }
+
+    /** Tells the user plainly when the device has no decoder for the picture (sound-only playback). */
+    private fun checkVideoSupport(tracks: Tracks) {
+        val groups = tracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO }
+        if (groups.isEmpty()) return
+        val anyHandled = groups.any { g -> (0 until g.length).any { g.getTrackSupport(it) == C.FORMAT_HANDLED } }
+        if (anyHandled) return
+        val g = groups[0]
+        val f = g.getTrackFormat(0)
+        val codecName = f.sampleMimeType?.substringAfter('/')?.uppercase(Locale.US) ?: "this"
+        notice(
+            "No picture: this device can't decode $codecName ${f.width}x${f.height} " +
+                "(${supportName(g.getTrackSupport(0))}). Sound only. Try Settings > Compatibility or another quality."
+        )
+    }
+
+    private val hideNotice = Runnable { if (!retryPending) banner.visibility = View.GONE }
+
+    private fun notice(text: String) {
+        DebugLog.log("notice: $text")
+        banner.text = text
+        banner.visibility = View.VISIBLE
+        handler.removeCallbacks(hideNotice)
+        handler.postDelayed(hideNotice, 12_000)
+    }
+
+    /** Playing with a video track but nothing drawn after a few seconds: black-picture case. */
+    private val noPictureCheck = Runnable {
+        val p = player ?: return@Runnable
+        if (!firstFrameDrawn && p.videoFormat != null && p.playbackState == Player.STATE_READY) {
+            notice("Sound is playing but no picture is drawn. Try Settings > Compatibility: Software first, or TextureView.")
+        }
+    }
+
     private fun stateName(s: Int) = when (s) {
         Player.STATE_IDLE -> "idle"
         Player.STATE_BUFFERING -> "buffering"
@@ -512,6 +632,7 @@ class PlayerActivity : AppCompatActivity() {
             firstReady = false
             if (resumeLabel > 0) flash("Resumed at ${Fmt.time(resumeLabel)}")
             autoFindSubs()
+            handler.postDelayed(noPictureCheck, 5000)
         }
     }
 

@@ -45,6 +45,8 @@ object DebugLog {
         if (playerInfo.isNotBlank()) {
             sb.append("\n--- Player ---\n").append(playerInfo).append('\n')
         }
+        sb.append("Compat  decoder=").append(c.prefDecoderMode).append(" textureView=").append(c.prefTextureView).append('\n')
+        sb.append("\n--- Decoders on this device ---\n").append(Decoders.report())
         sb.append("\n--- Log ---\n").append(dump()).append('\n')
         return sb.toString()
     }

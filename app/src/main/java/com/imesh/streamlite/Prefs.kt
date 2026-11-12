@@ -55,6 +55,16 @@ var Context.prefFollowVideo: Boolean
     get() = sp.getBoolean("follow_video", false)
     set(v) = putBool("follow_video", v)
 
+/** 0 automatic, 1 software decoders first, 2 hardware decoders only */
+var Context.prefDecoderMode: Int
+    get() = sp.getInt("decoder_mode", 0)
+    set(v) = putInt("decoder_mode", v)
+
+/** Draw video on a TextureView instead of a SurfaceView (fixes black picture on some TVs). */
+var Context.prefTextureView: Boolean
+    get() = sp.getBoolean("texture_view", false)
+    set(v) = putBool("texture_view", v)
+
 /** subtitle size in percent */
 var Context.prefSubSize: Int
     get() = sp.getInt("sub_size", 100)

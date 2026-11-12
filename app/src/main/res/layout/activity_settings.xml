@@ -208,6 +208,77 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Compatibility -->
+            <TextView
+                style="@style/SL.Section"
+                android:text="Compatibility (TVs and older devices)" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/SL.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        style="@style/SL.Label"
+                        android:text="Video decoder" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/decoderGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <Button
+                            android:id="@+id/decAuto"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Auto" />
+
+                        <Button
+                            android:id="@+id/decSoft"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Software first" />
+
+                        <Button
+                            android:id="@+id/decHard"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Hardware only" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="If a video plays sound but shows no picture, try Software first. It is slower and uses more battery, but it can handle formats a TV chip cannot." />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swTexture"
+                        style="@style/SL.Switch"
+                        android:layout_marginTop="10dp"
+                        android:text="Draw video with TextureView" />
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="0dp"
+                        android:text="Fixes a black picture on some TVs. Uses a little more power. Applies the next time a video starts." />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Subtitles -->
             <TextView
                 style="@style/SL.Section"

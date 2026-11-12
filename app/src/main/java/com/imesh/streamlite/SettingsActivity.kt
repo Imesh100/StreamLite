@@ -85,6 +85,14 @@ class SettingsActivity : AppCompatActivity() {
         bindSwitch(R.id.swFollow, prefFollowVideo) { prefFollowVideo = it }
         bindSwitch(R.id.swClip, prefAutoDetect) { prefAutoDetect = it }
         bindSwitch(R.id.swAutoSubs, prefAutoSubs) { prefAutoSubs = it }
+
+        val decIds = intArrayOf(R.id.decAuto, R.id.decSoft, R.id.decHard)
+        val decGroup = findViewById<MaterialButtonToggleGroup>(R.id.decoderGroup)
+        decGroup.check(decIds[prefDecoderMode.coerceIn(0, 2)])
+        decGroup.addOnButtonCheckedListener { _, id, checked ->
+            if (checked) prefDecoderMode = decIds.indexOf(id).coerceAtLeast(0)
+        }
+        bindSwitch(R.id.swTexture, prefTextureView) { prefTextureView = it }
     }
 
     private fun bindSwitch(id: Int, value: Boolean, onChange: (Boolean) -> Unit) {
