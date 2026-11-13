@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.imesh.streamlite"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 34
         versionCode = 4
         versionName = "2.2"

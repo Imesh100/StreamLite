@@ -4,7 +4,7 @@ StreamLite is MIT licensed (see [LICENSE](LICENSE)). It depends on:
 
 | Component | Used for | License |
 |---|---|---|
-| [AndroidX Media3](https://github.com/androidx/media) 1.3.1 (ExoPlayer, HLS, DASH, SmoothStreaming, RTSP, UI) | Playback | Apache-2.0 |
+| [AndroidX Media3](https://github.com/androidx/media) 1.9.0 (ExoPlayer, HLS, DASH, SmoothStreaming, RTSP, UI) | Playback | Apache-2.0 |
 | [AndroidX](https://developer.android.com/jetpack/androidx) core, appcompat, recyclerview | UI plumbing | Apache-2.0 |
 | [Material Components for Android](https://github.com/material-components/material-components-android) 1.12.0 | UI | Apache-2.0 |
 | [Jellyfin Media3 FFmpeg decoder](https://github.com/jellyfin/jellyfin-androidx-media) | Software audio (E-AC3, AC3, DTS, TrueHD…) | Apache-2.0 wrapper; bundles [FFmpeg](https://ffmpeg.org/), which is under the LGPL (v2.1 or later) |

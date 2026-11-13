@@ -8,7 +8,7 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 [![Latest release](https://img.shields.io/github/v/release/Imesh100/StreamLite?label=download&color=4c8bf5)](../../releases/latest)
 [![Build](https://github.com/Imesh100/StreamLite/actions/workflows/build-apk.yml/badge.svg)](../../actions/workflows/build-apk.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-![Android 5.0+](https://img.shields.io/badge/Android-5.0%2B-3ddc84)
+![Android 6.0+](https://img.shields.io/badge/Android-6.0%2B-3ddc84)
 ![Android TV](https://img.shields.io/badge/Android%20TV-supported-blue)
 
 [**⬇ Download the APK**](../../releases/latest/download/StreamLite.apk)
@@ -53,7 +53,7 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 2. Open it and allow *Install unknown apps* for your browser/file manager when asked.
 3. Updates are signed with the same key, so new builds install over old ones and keep your data.
 
-Requires **Android 5.0 (API 21) or newer**. Android TV and Google TV are supported (sideload with a file manager or `adb install`).
+Requires **Android 6.0 (API 23) or newer**. Android TV and Google TV are supported (sideload with a file manager or `adb install`).
 
 ## Using it
 
@@ -102,9 +102,9 @@ No local SDK? Fork the repo and push: the **Build APK** workflow builds the APK 
 | | |
 |---|---|
 | Language | Kotlin |
-| Player | AndroidX Media3 (ExoPlayer) 1.3.1 + FFmpeg audio decoder |
+| Player | AndroidX Media3 (ExoPlayer) 1.9.0 + FFmpeg audio decoder |
 | UI | Material Components 1.12 |
-| Min / target SDK | 21 / 34 |
+| Min / target SDK | 23 / 34 |
 | Package | `com.imesh.streamlite` |
 
 ## Project docs

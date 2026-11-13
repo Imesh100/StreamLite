@@ -80,7 +80,7 @@ jobs:
           {
             awk -v v="$ver" '$0 ~ "^## "v"$" {f=1; next} /^## /{f=0} f' CHANGELOG.md
             echo
-            echo "**Install:** download \`StreamLite.apk\` below and open it (Android 5.0+). Builds are signed with the same key, so they update over older ones."
+            echo "**Install:** download \`StreamLite.apk\` below and open it (Android 6.0+). Builds are signed with the same key, so they update over older ones."
             echo
             echo "Full history: [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)"
           } > notes.md
