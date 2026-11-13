@@ -105,3 +105,4 @@ jobs:
           fix build-1 1.0
           fix build-2 2.0
           fix build-3 2.1
+          fix build-6 2.2
