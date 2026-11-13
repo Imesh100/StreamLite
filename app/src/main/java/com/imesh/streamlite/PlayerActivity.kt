@@ -60,7 +60,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -376,10 +376,7 @@ class PlayerActivity : AppCompatActivity() {
         for ((k, v) in headers) {
             if (k.equals("user-agent", true)) ua = v else props[k] = v
         }
-        val http = DefaultHttpDataSource.Factory()
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(15_000)
-            .setReadTimeoutMs(20_000)
+        val http = OkHttpDataSource.Factory(HttpClients.shared)
             .setUserAgent(ua)
         if (props.isNotEmpty()) http.setDefaultRequestProperties(props)
         val dataSourceFactory = DefaultDataSource.Factory(this, http)

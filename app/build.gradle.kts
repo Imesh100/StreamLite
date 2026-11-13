@@ -26,7 +26,9 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("stable")
         }
     }
@@ -62,6 +64,8 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-smoothstreaming:$media3")
     implementation("androidx.media3:media3-exoplayer-rtsp:$media3")
     implementation("androidx.media3:media3-ui:$media3")
+    implementation("androidx.media3:media3-datasource-okhttp:$media3")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // Software audio decoders (E-AC3, AC3, DTS, TrueHD, ...) for TVs that lack them
     implementation("org.jellyfin.media3:media3-ffmpeg-decoder:$media3+1")
 }
