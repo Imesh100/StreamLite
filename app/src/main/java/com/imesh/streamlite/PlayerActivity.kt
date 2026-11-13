@@ -181,7 +181,7 @@ class PlayerActivity : AppCompatActivity() {
     private val frameCount = AtomicInteger(0)
     private val frameListener = VideoFrameMetadataListener { _, _, _, _ -> frameCount.incrementAndGet() }
 
-    // gestures: 0 none, 1 seek, 2 brightness, 3 volume
+    // gestures: 0 none, 1 seek, 2 brightness, 3 volume, 4 ignored (middle zone)
     private var gestureMode = 0
     private var seekDeltaMs = 0L
     private var brightnessF = 0.5f
@@ -1025,8 +1025,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (gestureMode == 0) {
                     gestureMode = when {
                         abs(distanceX) > abs(distanceY) -> 1
-                        e1.x < gestureLayer.width / 2f -> 2
-                        else -> 3
+                        // keep the middle 30% free of vertical swipes so a stray touch doesn't change anything
+                        e1.x < gestureLayer.width * 0.35f -> 2
+                        e1.x > gestureLayer.width * 0.65f -> 3
+                        else -> 4
                     }
                     brightnessF = currentBrightness()
                     volumeF = audio.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat()

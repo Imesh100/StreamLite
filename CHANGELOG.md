@@ -4,6 +4,8 @@ All notable changes to StreamLite. The newest section is used as the GitHub rele
 
 ## Unreleased
 
+- Brightness and volume swipes now only work on the left and right 35% of the screen; the middle is a dead zone (horizontal swipe to seek still works everywhere).
+
 ## 2.2
 
 - **Fix: sound but no picture / missing audio on TVs.** Added a built-in FFmpeg software audio decoder for formats many TVs lack (E-AC3 / Dolby Digital Plus, AC3, DTS, TrueHD and more).
