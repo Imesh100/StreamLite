@@ -55,7 +55,7 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
-    val media3 = "1.3.1"
+    val media3 = "1.9.2"
     implementation("androidx.media3:media3-exoplayer:$media3")
     implementation("androidx.media3:media3-exoplayer-hls:$media3")
     implementation("androidx.media3:media3-exoplayer-dash:$media3")
@@ -63,5 +63,5 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer-rtsp:$media3")
     implementation("androidx.media3:media3-ui:$media3")
     // Software audio decoders (E-AC3, AC3, DTS, TrueHD, ...) for TVs that lack them
-    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:$media3+2")
+    implementation("org.jellyfin.media3:media3-ffmpeg-decoder:$media3+1")
 }
