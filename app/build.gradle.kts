@@ -5,7 +5,7 @@ plugins {
 
 android {
     namespace = "com.imesh.streamlite"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.imesh.streamlite"
