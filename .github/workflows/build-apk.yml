@@ -54,6 +54,14 @@ jobs:
             gh issue comment "$n" --body-file errs.md
           fi
 
+      - name: Close stale build-error issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for n in $(gh issue list --state open --search "Build errors in:title" --json number --jq '.[].number'); do
+            gh issue close "$n" --reason completed --comment "Fixed: build for ${GITHUB_SHA::7} succeeded."
+          done
+
       - name: Name the APK
         run: cp app/build/outputs/apk/release/app-release.apk StreamLite.apk
 
@@ -62,9 +70,38 @@ jobs:
           name: StreamLite-apk
           path: StreamLite.apk
 
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          ver=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          echo "VERSION=$ver" >> "$GITHUB_ENV"
+          {
+            awk -v v="$ver" '$0 ~ "^## "v"$" {f=1; next} /^## /{f=0} f' CHANGELOG.md
+            echo
+            echo "**Install:** download \`StreamLite.apk\` below and open it (Android 5.0+). Builds are signed with the same key, so they update over older ones."
+            echo
+            echo "Full history: [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)"
+          } > notes.md
+
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: StreamLite build ${{ github.run_number }}
+          name: StreamLite v${{ env.VERSION }} (build ${{ github.run_number }})
+          body_path: notes.md
           files: StreamLite.apk
+
+      - name: Fix titles and notes of earlier releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          fix() {  # tag version
+            gh release view "$1" >/dev/null 2>&1 || return 0
+            awk -v v="$2" '$0 ~ "^## "v"$" {f=1; next} /^## /{f=0} f' CHANGELOG.md > old.md
+            printf '\nDownload `StreamLite.apk` below. Older build, see the [latest release](https://github.com/%s/releases/latest) for the newest version.\n' "$GITHUB_REPOSITORY" >> old.md
+            gh release edit "$1" --title "StreamLite v$2 (build ${1#build-})" --notes-file old.md --latest=false
+          }
+          fix build-1 1.0
+          fix build-2 2.0
+          fix build-3 2.1
