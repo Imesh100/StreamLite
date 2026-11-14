@@ -13,7 +13,7 @@ All notable changes to StreamLite. The newest section is used as the GitHub rele
 - **Mouse and air-mouse support:** moving the pointer shows the controls, click plays/pauses, the wheel changes volume.
 - **Decoder auto-fallback:** if a hardware decoder fails, the player retries with software decoders automatically.
 - **Clean audio track names:** "English · Dolby Digital+ · 5.1" instead of codec codes.
-- **Updated engine:** Media3 1.9.0 (now needs Android 6.0 or newer), OkHttp for network requests, and a smaller APK (about 5 MB instead of 9 MB) thanks to code and resource shrinking.
+- **Updated engine:** Media3 1.9.0 (now needs Android 6.0 or newer), OkHttp for network requests, and a smaller APK (about 8.7 MB instead of 10 MB) thanks to code and resource shrinking.
 
 - Brightness and volume swipes now only work on the left and right 35% of the screen; the middle is a dead zone (horizontal swipe to seek still works everywhere).
 
