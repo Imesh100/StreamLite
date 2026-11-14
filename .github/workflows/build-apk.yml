@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: ['**']
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -39,9 +39,6 @@ jobs:
           grep -E "^e: |error:|What went wrong|Caused by|requires|Dependency|minSdk|compileSdk|Android Gradle|AAPT|resource .* not found|FAILED" build.log | grep -v "^> Task" | head -40 > errs.txt || true
           [ -s errs.txt ] || tail -50 build.log > errs.txt
           {
-            echo "Available ffmpeg decoder versions:"
-            curl -sS --max-time 20 https://repo1.maven.org/maven2/org/jellyfin/media3/media3-ffmpeg-decoder/maven-metadata.xml | grep -o '<version>[^<]*' | sed 's/<version>//' | tr '\n' ' ' || true
-            echo
             echo "Commit ${GITHUB_SHA}"
             echo '```'
             cut -c1-400 errs.txt
@@ -55,7 +52,6 @@ jobs:
           fi
 
       - name: Close stale build-error issues
-        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -66,13 +62,7 @@ jobs:
       - name: Name the APK
         run: cp app/build/outputs/apk/release/app-release.apk StreamLite.apk
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: StreamLite-apk-${{ github.ref_name }}
-          path: StreamLite.apk
-
       - name: Prepare release notes
-        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           ver=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
@@ -86,29 +76,10 @@ jobs:
           } > notes.md
 
       - name: Publish release
-        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: StreamLite v${{ env.VERSION }} (build ${{ github.run_number }})
+          tag_name: v${{ env.VERSION }}
+          name: StreamLite v${{ env.VERSION }}
           body_path: notes.md
           files: StreamLite.apk
-
-      - name: Fix titles and notes of earlier releases
-        if: github.ref == 'refs/heads/main'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          fix() {  # tag version
-            gh release view "$1" >/dev/null 2>&1 || return 0
-            awk -v v="$2" '$0 ~ "^## "v"$" {f=1; next} /^## /{f=0} f' CHANGELOG.md > old.md
-            printf '\nDownload `StreamLite.apk` below. Older build, see the [latest release](https://github.com/%s/releases/latest) for the newest version.\n' "$GITHUB_REPOSITORY" >> old.md
-            gh release edit "$1" --title "StreamLite v$2 (build ${1#build-})" --notes-file old.md --latest=false
-          }
-          fix build-1 1.0
-          fix build-2 2.0
-          fix build-3 2.1
-          fix build-6 2.2
-          fix build-9 2.2
-          fix build-17 2.3
+          make_latest: true

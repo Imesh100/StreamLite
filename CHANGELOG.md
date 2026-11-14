@@ -1,61 +1,38 @@
 # Changelog
 
-All notable changes to StreamLite. The newest section is used as the GitHub release notes.
+All notable changes to StreamLite. The section for the current version is used as the GitHub release notes.
 
 ## Unreleased
 
-## 2.5
-
-- **Playlists:** open `.m3u`, `.m3u8` lists of links and `.pls` files from a link, a file manager or another app. Items play one after another, with previous/next buttons, a Playlist list in the More menu, and TV remote next/previous keys.
-- Playlists remember where you stopped, skip dead links automatically, and keep per-item speed, zoom and language settings.
-
-## 2.4
-
-- **Sleep timer** (More menu): pause after 15 to 90 minutes.
-- **Jump to time:** tap the current time (or More → Jump to time) and type 1:23:45.
-- **Ends at:** the top bar shows when the video will finish ("ends 9:45 PM"), adjusted for playback speed.
-- **Clearer errors:** expired links (410), refused access (403), login needed (401) and others now say what to do.
-- **Stalls counter** in Stats, and a "Watched" label in the library.
-- **Check for updates** button in Settings (only contacts GitHub when you tap it).
-- **Crash report:** if the app ever closes unexpectedly, the next launch offers to copy the error and log.
-
-## 2.3.1
-
-- **Fix:** videos failed to start in 2.3 with "onTracksSelected not implemented". Playback is restored.
-
-## 2.3
-
-- **Touch:** press and hold anywhere on the picture to play at 2× speed; release to go back. Brightness/volume swipes now leave the middle 30% of the screen free.
-- **Remember per video:** speed, zoom mode, audio and subtitle language, subtitle delay and volume boost are saved for each link (can be turned off).
-- **Keep buffering while paused:** Always, Wi-Fi only (default) or Never, so a paused video does not use mobile data.
-- **Play in StreamLite:** appears in the text-selection menu and the Share menu of other apps.
-- **Mouse and air-mouse support:** moving the pointer shows the controls, click plays/pauses, the wheel changes volume.
-- **Decoder auto-fallback:** if a hardware decoder fails, the player retries with software decoders automatically.
-- **Clean audio track names:** "English · Dolby Digital+ · 5.1" instead of codec codes.
-- **Updated engine:** Media3 1.9.0 (now needs Android 6.0 or newer), OkHttp for network requests, and a smaller APK (about 8.7 MB instead of 10 MB) thanks to code and resource shrinking.
-
-- Brightness and volume swipes now only work on the left and right 35% of the screen; the middle is a dead zone (horizontal swipe to seek still works everywhere).
-
-## 2.2
-
-- **Fix: sound but no picture / missing audio on TVs.** Added a built-in FFmpeg software audio decoder for formats many TVs lack (E-AC3 / Dolby Digital Plus, AC3, DTS, TrueHD and more).
-- New **Compatibility** settings: decoder mode (Auto / Software first / Hardware only) and a TextureView renderer option.
-- Debug report now lists decoders on the device and whether FFmpeg audio is available; FPS shows a hint when Stats is closed.
-- Android TV: leanback launcher entry and banner, remote-key controls.
-
-## 2.1
-
-- Debug report with device info, decoder list and log.
-- Reliability fixes for the player on older Android versions.
-
-## 2.0
-
-- Brand-new Material 3 interface with **System / Dark / AMOLED** themes.
-- Player: lock controls, smart rotate (tap = auto-fit, long-press = menu), Picture-in-Picture, resume position, auto-reconnect, volume boost, playback speed, clock/battery overlay, keep-screen-on.
-- Subtitles: style, size, position, delay, preferred languages, auto-find subtitle files, online subtitle search.
-- Library: favorites, history, custom headers per link, auto-detect copied links.
-- Data usage history and battery-drain estimate; debug report button.
-
 ## 1.0
 
-- First release: stream any video link (MP4, MKV, HLS, DASH…), buffer size setting in MB, stats panel (speed, buffer, data), subtitle/audio/video track selection, screen modes (auto, fit, fill, zoom), brightness and volume gestures.
+First release.
+
+**Streaming**
+- Play any video link: MP4, MKV, WebM and more, plus HLS, DASH, SmoothStreaming and RTSP.
+- Playlists: `.m3u`, `.m3u8` lists of links and `.pls`, with previous/next, auto-play and remembered position.
+- Buffer size setting in MB, auto-reconnect, resume, custom HTTP headers per link, and a choice to keep buffering while paused (Always, Wi-Fi only, Never).
+- Auto-detects a copied link; **Play in StreamLite** appears in the Share and text-selection menus.
+
+**Player**
+- Stats panel: speed, buffer, data used, resolution, bitrate, FPS and stalls.
+- Audio, subtitle and video-quality selection with clean track names; preferred languages.
+- Screen modes (auto, fit, fill, zoom), brightness and volume gestures with a free middle zone, volume boost and playback speed.
+- Long-press for 2× speed; speed, zoom, language and subtitle delay are remembered per video.
+- Smart rotate button, control lock, Picture-in-Picture, screen stays awake, clock and battery overlay with finish time.
+- Sleep timer, jump to time, clear error messages for expired or refused links.
+- Mouse and air-mouse support, Android TV remote support and launcher entry.
+
+**Subtitles**
+- Style, size, position and delay; auto-find subtitle files; online subtitle search.
+
+**Compatibility**
+- FFmpeg software audio decoder (E-AC3, AC3, DTS, TrueHD and more), decoder mode (Auto, Software first, Hardware only), TextureView option, and automatic fallback to software decoding when a hardware decoder fails.
+
+**Library and insight**
+- Favorites, history with watched markers, data-usage history, battery-drain estimate.
+- Debug report, crash report on next launch, and a check-for-updates button.
+
+**Design**
+- Material 3 interface with System, Dark and AMOLED themes.
+- Built on Media3 1.9 with OkHttp; shrunk release APK of about 9 MB. Requires Android 6.0 or newer.
