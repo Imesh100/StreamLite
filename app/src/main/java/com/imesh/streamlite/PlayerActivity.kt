@@ -446,7 +446,9 @@ class PlayerActivity : AppCompatActivity() {
             .setPrioritizeTimeOverSizeThresholds(false)
             .setBackBuffer(20_000, false)
             .build()
-        val loadControl = PrebufferLoadControl(baseLoad, this) { prefPrebuffer }
+        // "Always" uses the stock load control untouched; the wrapper is only needed to stop buffering while paused.
+        val loadControl: androidx.media3.exoplayer.LoadControl =
+            if (prefPrebuffer == 0) baseLoad else PrebufferLoadControl(baseLoad, this) { prefPrebuffer }
 
         val renderers = DefaultRenderersFactory(this)
             .setEnableDecoderFallback(true)
