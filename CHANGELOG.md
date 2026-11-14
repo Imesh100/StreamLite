@@ -4,6 +4,11 @@ All notable changes to StreamLite. The newest section is used as the GitHub rele
 
 ## Unreleased
 
+## 2.5
+
+- **Playlists:** open `.m3u`, `.m3u8` lists of links and `.pls` files from a link, a file manager or another app. Items play one after another, with previous/next buttons, a Playlist list in the More menu, and TV remote next/previous keys.
+- Playlists remember where you stopped, skip dead links automatically, and keep per-item speed, zoom and language settings.
+
 ## 2.4
 
 - **Sleep timer** (More menu): pause after 15 to 90 minutes.

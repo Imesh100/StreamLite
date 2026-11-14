@@ -30,6 +30,7 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 - **Stats panel**: live speed, buffer, data used, resolution, bitrate, dropped frames and a working **FPS meter**.
 - Audio, subtitle and video-quality track selection; preferred languages.
 - Screen modes: **auto, fit, fill, zoom**. Brightness and volume gestures, **volume boost**, playback speed.
+- **Playlists** (`.m3u`, `.m3u8` lists, `.pls`) with previous/next and auto-play.
 - **Long-press** the picture for 2× speed; speed, zoom, language and subtitle delay are **remembered per video**.
 - **Rotate button**: tap = auto-rotate to fit the video, long-press = rotation menu.
 - **Control lock** to stop accidental touches, **Picture-in-Picture**, screen stays awake while playing.

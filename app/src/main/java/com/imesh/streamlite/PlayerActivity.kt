@@ -171,6 +171,18 @@ class PlayerActivity : AppCompatActivity() {
     private var stallCount = 0
     private var lastState = Player.STATE_IDLE
 
+    // playlist
+    private var queue: List<PlaylistItem> = emptyList()
+    private var queueIndex = 0
+    private var playlistUrl = ""
+    private var playlistEntry: Entry? = null
+    private var playlistPending = false
+    private var triedPlaylist = false
+    private var started = false
+    private var savedResize = -1
+    private lateinit var btnPrev: ImageButton
+    private lateinit var btnNext: ImageButton
+
     // auto-reconnect
     private var retryCount = 0
     private var retryLeft = 0
@@ -219,17 +231,7 @@ class PlayerActivity : AppCompatActivity() {
         entry = Store.touch(this, url)
         headers = Store.parseHeaders(entry.headers)
         decoderModeNow = prefDecoderMode
-        var savedResize = -1
-        if (prefRememberVideo) {
-            PerVideo.load(this, url)?.let { v ->
-                if (v.speed in SPEEDS.indices) speedIndex = v.speed
-                savedResize = v.resize
-                subDelayMs = v.subDelayMs
-                boostPct = v.boost
-                audioLangSel = v.audioLang
-                textLangSel = v.textLang
-            }
-        }
+        applyPerVideo()
 
         val surfaceView = findViewById<PlayerView>(R.id.playerView)
         val textureView = findViewById<PlayerView>(R.id.playerViewTexture)
@@ -251,6 +253,8 @@ class PlayerActivity : AppCompatActivity() {
         indicator = findViewById(R.id.indicator)
         banner = findViewById(R.id.banner)
         spinner = findViewById(R.id.spinner)
+        btnPrev = findViewById(R.id.btnPrev)
+        btnNext = findViewById(R.id.btnNext)
 
         titleText.text = Store.displayName(entry)
         resizeIndex = prefResizeIndex.coerceIn(0, RESIZE_MODES.size - 1)
@@ -267,6 +271,13 @@ class PlayerActivity : AppCompatActivity() {
         setupControls()
         btnSpeed.text = SPEED_LABELS[speedIndex]
         setupGestures()
+        btnPrev.setOnClickListener { prevItem() }
+        btnNext.setOnClickListener { nextItem() }
+        if (Playlist.isPlaylist(url, intent.type)) {
+            playlistUrl = url
+            playlistEntry = entry
+            loadPlaylist(url)
+        }
         ViewCompat.setOnApplyWindowInsetsListener(controls) { v, insets ->
             val i = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
             v.setPadding(i.left, i.top, i.right, i.bottom)
@@ -289,11 +300,13 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        if (url.isNotBlank()) initPlayer()
+        started = true
+        if (url.isNotBlank() && !playlistPending) initPlayer()
     }
 
     override fun onStop() {
         super.onStop()
+        started = false
         val wasPip = Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode
         releasePlayer()
         if (wasPip) finishAndRemoveTask()
@@ -315,6 +328,14 @@ class PlayerActivity : AppCompatActivity() {
             when (keyCode) {
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_HEADSETHOOK -> {
                     togglePlay()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                    nextItem()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                    prevItem()
                     return true
                 }
                 KeyEvent.KEYCODE_MEDIA_PLAY -> {
@@ -482,7 +503,9 @@ class PlayerActivity : AppCompatActivity() {
                 lastState = playbackState
                 spinner.visibility = if (playbackState == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
                 if (playbackState == Player.STATE_READY) onReady()
-                if (playbackState == Player.STATE_ENDED) showControls(true)
+                if (playbackState == Player.STATE_ENDED) {
+                    if (queue.isNotEmpty() && queueIndex < queue.lastIndex) playIndex(queueIndex + 1, 0L) else showControls(true)
+                }
                 updatePlayIcon()
                 updateKeepOn()
                 if (inPip) updatePip()
@@ -623,6 +646,138 @@ class PlayerActivity : AppCompatActivity() {
             .show()
     }
 
+    // ---------------------------------------------------------------- playlist
+
+    private fun applyPerVideo() {
+        speedIndex = 2
+        savedResize = -1
+        subDelayMs = 0
+        boostPct = 0
+        audioLangSel = ""
+        textLangSel = ""
+        if (prefRememberVideo) {
+            PerVideo.load(this, url)?.let { v ->
+                if (v.speed in SPEEDS.indices) speedIndex = v.speed
+                savedResize = v.resize
+                subDelayMs = v.subDelayMs
+                boostPct = v.boost
+                audioLangSel = v.audioLang
+                textLangSel = v.textLang
+            }
+        }
+    }
+
+    private fun loadPlaylist(src: String) {
+        playlistPending = true
+        spinner.visibility = View.VISIBLE
+        val hdr = headers
+        Thread {
+            val items = try { Playlist.load(this, src, hdr) } catch (e: Exception) {
+                DebugLog.log("playlist load failed: $e")
+                emptyList()
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                playlistPending = false
+                if (items.isEmpty()) {
+                    spinner.visibility = View.GONE
+                    MaterialAlertDialogBuilder(this)
+                        .setTitle("Can't open this playlist")
+                        .setMessage("No playable links were found, or the playlist could not be downloaded.")
+                        .setCancelable(false)
+                        .setPositiveButton("Close") { _, _ -> finish() }
+                        .show()
+                } else {
+                    startQueue(items)
+                }
+            }
+        }.start()
+    }
+
+    private fun startQueue(items: List<PlaylistItem>) {
+        queue = items
+        val st = Playlist.state(this, playlistUrl)
+        val start = if (prefResume) st.first.coerceIn(0, items.lastIndex) else 0
+        val pos = if (prefResume && st.first == start) st.second else 0L
+        val multi = if (items.size > 1) View.VISIBLE else View.GONE
+        btnPrev.visibility = multi
+        btnNext.visibility = multi
+        DebugLog.log("playlist: ${items.size} items, start $start")
+        playIndex(start, pos)
+    }
+
+    private fun playIndex(i: Int, resume: Long) {
+        if (i !in queue.indices) return
+        saveVideoSettings()
+        val item = queue[i]
+        queueIndex = i
+        url = item.url
+        entry = Entry(url = item.url, title = item.title, headers = playlistEntry?.headers ?: "")
+        headers = Store.parseHeaders(entry.headers)
+        subRaw = null
+        subtitleUri = null
+        subtitleMime = null
+        autoSubsTried = false
+        mimeOverride = null
+        fallbackStage = 0
+        retryCount = 0
+        retryPending = false
+        firstReady = true
+        firstFrameDrawn = false
+        handler.removeCallbacks(noPictureCheck)
+        handler.removeCallbacks(retryTick)
+        applyPerVideo()
+        resizeIndex = if (savedResize in RESIZE_MODES.indices) savedResize else prefResizeIndex.coerceIn(0, RESIZE_MODES.size - 1)
+        playerView.resizeMode = RESIZE_MODES[resizeIndex]
+        btnSpeed.text = SPEED_LABELS[speedIndex]
+        titleText.text = item.title + "  (" + (i + 1) + "/" + queue.size + ")"
+        resumePos = resume
+        resumeLabel = resume
+        val p = player
+        if (p != null) {
+            p.trackSelectionParameters = p.trackSelectionParameters.buildUpon()
+                .clearOverrides()
+                .setPreferredAudioLanguage((audioLangSel.ifBlank { prefAudioLang }).ifBlank { null })
+                .setPreferredTextLanguage((textLangSel.ifBlank { prefTextLang }).ifBlank { null })
+                .build()
+            if (resume > 0) p.setMediaItem(buildItem(), resume) else p.setMediaItem(buildItem())
+            p.playWhenReady = true
+            p.prepare()
+            p.setPlaybackSpeed(SPEEDS[speedIndex])
+            applyBoost()
+            spinner.visibility = View.VISIBLE
+        } else if (started) {
+            initPlayer()
+        }
+    }
+
+    private fun nextItem() {
+        if (queue.isEmpty()) return
+        if (queueIndex < queue.lastIndex) playIndex(queueIndex + 1, 0L) else flash("Last item")
+    }
+
+    private fun prevItem() {
+        if (queue.isEmpty()) return
+        val p = player
+        if (p != null && p.currentPosition > 5_000) {
+            p.seekTo(0)
+        } else if (queueIndex > 0) {
+            playIndex(queueIndex - 1, 0L)
+        } else {
+            flash("First item")
+        }
+    }
+
+    private fun showPlaylistSheet() {
+        if (queue.isEmpty()) return
+        // very long lists (IPTV) only show the items around the current one
+        val from = (queueIndex - 100).coerceAtLeast(0)
+        val to = (queueIndex + 200).coerceAtMost(queue.size)
+        val labels = (from until to).map { "${it + 1}. ${queue[it].title}" }
+        val title = if (queue.size > to - from) "Playlist (${queue.size}, showing nearby)" else "Playlist (${queue.size})"
+        Sheets.choose(this, title, labels, queueIndex - from) { idx -> playIndex(from + idx, 0L) }
+    }
+
     private fun saveVideoSettings() {
         if (!prefRememberVideo || url.isBlank()) return
         PerVideo.save(
@@ -636,6 +791,9 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         savePosition(p)
         saveVideoSettings()
+        if (queue.isNotEmpty()) {
+            Playlist.saveState(this, playlistUrl, queueIndex, if (p.playbackState == Player.STATE_ENDED) 0L else p.currentPosition)
+        }
         flushUsage()
         resumePos = p.currentPosition
         resumePlay = p.playWhenReady
@@ -899,12 +1057,35 @@ class PlayerActivity : AppCompatActivity() {
         netCallback = null
     }
 
-    private fun handleError(e: PlaybackException) {
+    private fun handleError(e: PlaybackException, skipPlaylistCheck: Boolean = false) {
         DebugLog.log("error ${e.errorCodeName} cause=${e.cause?.javaClass?.simpleName} ${e.cause?.message}")
         val p = player ?: return
         if (e.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
             p.seekToDefaultPosition()
             p.prepare()
+            return
+        }
+        // A .m3u8 that is really a list of links: load it as a playlist.
+        if (!skipPlaylistCheck && queue.isEmpty() && !triedPlaylist && !playlistPending && url.startsWith("http") &&
+            (e.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED ||
+                e.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED)
+        ) {
+            triedPlaylist = true
+            val src = url
+            val hdr = headers
+            Thread {
+                val items = try { Playlist.load(this, src, hdr) } catch (x: Exception) { emptyList() }
+                runOnUiThread {
+                    if (isFinishing || isDestroyed) return@runOnUiThread
+                    if (items.size > 1 || (items.size == 1 && items[0].url != src)) {
+                        playlistUrl = src
+                        playlistEntry = entry
+                        startQueue(items)
+                    } else {
+                        handleError(e, true)
+                    }
+                }
+            }.start()
             return
         }
         // Link has no recognisable extension: try it as HLS, then as DASH.
@@ -933,8 +1114,13 @@ class PlayerActivity : AppCompatActivity() {
             flash("Switched to software decoder")
             return
         }
-        if (prefReconnect && isNetworkError(e) && retryCount < MAX_RETRIES) {
+        if (prefReconnect && isNetworkError(e) && retryCount < (if (queue.isNotEmpty()) 2 else MAX_RETRIES)) {
             scheduleRetry()
+            return
+        }
+        if (queue.isNotEmpty() && queueIndex < queue.lastIndex) {
+            notice("Can't play this item. Skipping to the next one.")
+            playIndex(queueIndex + 1, 0L)
             return
         }
         if (isFinishing || isDestroyed) return
@@ -1673,7 +1859,7 @@ class PlayerActivity : AppCompatActivity() {
         val labels = listOf(
             "Video quality", "Start from the beginning", "Copy debug report", "Share link",
             "Sleep timer", "Jump to time"
-        )
+        ) + (if (queue.isNotEmpty()) listOf("Playlist (${queue.size})") else emptyList())
         Sheets.choose(this, "More", labels, -1) { i ->
             when (i) {
                 0 -> showTrackSheet(C.TRACK_TYPE_VIDEO, "Video quality", "Auto")
@@ -1690,6 +1876,7 @@ class PlayerActivity : AppCompatActivity() {
                 )
                 4 -> showSleepSheet()
                 5 -> showJumpDialog()
+                6 -> showPlaylistSheet()
             }
         }
     }
