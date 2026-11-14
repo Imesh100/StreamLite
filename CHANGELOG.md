@@ -4,6 +4,10 @@ All notable changes to StreamLite. The newest section is used as the GitHub rele
 
 ## Unreleased
 
+## 2.3.1
+
+- **Fix:** videos failed to start in 2.3 with "onTracksSelected not implemented". Playback is restored.
+
 ## 2.3
 
 - **Touch:** press and hold anywhere on the picture to play at 2× speed; release to go back. Brightness/volume swipes now leave the middle 30% of the screen free.
