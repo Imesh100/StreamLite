@@ -11,8 +11,8 @@ android {
         applicationId = "com.imesh.streamlite"
         minSdk = 23
         targetSdk = 34
-        versionCode = 6
-        versionName = "2.3.1"
+        versionCode = 7
+        versionName = "2.4"
     }
 
     signingConfigs {

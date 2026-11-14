@@ -1,5 +1,6 @@
 package com.imesh.streamlite
 
+import android.content.Intent
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -190,6 +191,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupTools() {
+        findViewById<View>(R.id.btnUpdate).setOnClickListener { checkForUpdates() }
         findViewById<View>(R.id.btnDebug).setOnClickListener {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
             cm.setPrimaryClip(ClipData.newPlainText("StreamLite debug", DebugLog.report(this, "")))
@@ -210,5 +212,55 @@ class SettingsActivity : AppCompatActivity() {
             ""
         }
         findViewById<TextView>(R.id.versionText).text = "StreamLite $ver"
+    }
+
+    /** Manual check only: asks GitHub for the latest release when you tap the button. */
+    private fun checkForUpdates() {
+        Toast.makeText(this, "Checking…", Toast.LENGTH_SHORT).show()
+        Thread {
+            var tag = ""
+            var page = ""
+            var err = ""
+            try {
+                val req = okhttp3.Request.Builder()
+                    .url("https://api.github.com/repos/Imesh100/StreamLite/releases/latest")
+                    .header("Accept", "application/vnd.github+json").build()
+                HttpClients.shared.newCall(req).execute().use { r ->
+                    if (!r.isSuccessful) throw java.io.IOException("HTTP " + r.code)
+                    val o = org.json.JSONObject(r.body?.string() ?: "{}")
+                    tag = o.optString("name", o.optString("tag_name"))
+                    page = o.optString("html_url")
+                }
+            } catch (e: Exception) {
+                err = e.message ?: "network error"
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                val cur = try { packageManager.getPackageInfo(packageName, 0).versionName ?: "" } catch (e: Exception) { "" }
+                val latest = Regex("""v(\d+(?:\.\d+)*)""").find(tag)?.groupValues?.get(1) ?: ""
+                val b = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                if (err.isNotEmpty() || latest.isEmpty()) {
+                    b.setTitle("Couldn't check").setMessage("Could not reach GitHub ($err). Try again later.").setPositiveButton("OK", null)
+                } else if (newer(latest, cur)) {
+                    b.setTitle("Update available").setMessage("You have $cur. Latest is $latest.")
+                        .setPositiveButton("Open download page") { _, _ ->
+                            startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(page)))
+                        }.setNegativeButton("Later", null)
+                } else {
+                    b.setTitle("You're up to date").setMessage("Version $cur is the latest.").setPositiveButton("OK", null)
+                }
+                b.show()
+            }
+        }.start()
+    }
+
+    private fun newer(a: String, b: String): Boolean {
+        val x = a.split(".").map { it.toIntOrNull() ?: 0 }
+        val y = b.split(".").map { it.toIntOrNull() ?: 0 }
+        for (i in 0 until maxOf(x.size, y.size)) {
+            val d = x.getOrElse(i) { 0 } - y.getOrElse(i) { 0 }
+            if (d != 0) return d > 0
+        }
+        return false
     }
 }

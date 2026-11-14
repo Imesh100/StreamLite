@@ -19,6 +19,9 @@ object DebugLog {
     }
 
     @Synchronized
+    fun snapshot(): String = buf.joinToString("\n")
+
+    @Synchronized
     private fun dump(): String = buf.joinToString("\n")
 
     fun report(c: Context, playerInfo: String): String {

@@ -11,6 +11,26 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         Theming.apply(this)
+        installCrashSaver()
+    }
+
+    /** Saves the recent log and the error to a file so the next launch can offer it as a report. */
+    private fun installCrashSaver() {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            try {
+                val text = "Crash on thread ${t.name}\n" + android.util.Log.getStackTraceString(e) +
+                    "\n--- Log ---\n" + DebugLog.snapshot()
+                java.io.File(filesDir, CRASH_FILE).writeText(text)
+            } catch (x: Throwable) {
+                // nothing more we can do while crashing
+            }
+            previous?.uncaughtException(t, e)
+        }
+    }
+
+    companion object {
+        const val CRASH_FILE = "last_crash.txt"
     }
 }
 

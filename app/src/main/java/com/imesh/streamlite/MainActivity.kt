@@ -13,6 +13,7 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
@@ -86,6 +87,25 @@ class MainActivity : AppCompatActivity() {
         }
 
         handleSend(intent)
+        offerCrashReport()
+    }
+
+    private fun offerCrashReport() {
+        val f = java.io.File(filesDir, App.CRASH_FILE)
+        if (!f.exists()) return
+        val text = try { f.readText() } catch (e: Exception) { "" }
+        f.delete()
+        if (text.isBlank()) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle("StreamLite closed unexpectedly")
+            .setMessage("Copy the error report so you can send it to the developer?")
+            .setPositiveButton("Copy report") { _, _ ->
+                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("StreamLite crash", text))
+                Toast.makeText(this, "Report copied", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Dismiss", null)
+            .show()
     }
 
     override fun onResume() {
@@ -247,12 +267,15 @@ class MainActivity : AppCompatActivity() {
             val e = items[position]
             h.title.text = Store.displayName(e)
             val hasPos = e.pos > 3000 && e.dur > 0
-            h.sub.text = if (hasPos) {
+            val watched = e.dur > 0 && e.pos >= e.dur * 0.95
+            h.sub.text = if (watched) {
+                "Watched  \u00b7  ${Fmt.hostOf(e.url)}"
+            } else if (hasPos) {
                 "Resume at ${Fmt.time(e.pos)} of ${Fmt.time(e.dur)}  ·  ${Fmt.hostOf(e.url)}"
             } else {
                 Fmt.hostOf(e.url)
             }
-            h.progress.visibility = if (hasPos) View.VISIBLE else View.GONE
+            h.progress.visibility = if (hasPos && !watched) View.VISIBLE else View.GONE
             if (hasPos) h.progress.progress = (e.pos * 1000 / e.dur).toInt().coerceIn(0, 1000)
             h.pin.setImageResource(if (e.pinned) R.drawable.ic_star else R.drawable.ic_star_border)
             h.pin.setColorFilter(

@@ -167,6 +167,9 @@ class PlayerActivity : AppCompatActivity() {
     private var audioLangSel = ""
     private var textLangSel = ""
     private var decoderModeNow = 0
+    private var sleepAtMs = 0L
+    private var stallCount = 0
+    private var lastState = Player.STATE_IDLE
 
     // auto-reconnect
     private var retryCount = 0
@@ -473,6 +476,10 @@ class PlayerActivity : AppCompatActivity() {
         p.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 DebugLog.log("state ${stateName(playbackState)}")
+                if (playbackState == Player.STATE_BUFFERING && lastState == Player.STATE_READY && player?.playWhenReady == true) {
+                    stallCount++
+                }
+                lastState = playbackState
                 spinner.visibility = if (playbackState == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
                 if (playbackState == Player.STATE_READY) onReady()
                 if (playbackState == Player.STATE_ENDED) showControls(true)
@@ -558,10 +565,62 @@ class PlayerActivity : AppCompatActivity() {
         lastFlushed = NetStats.bytes.get()
         registerNet()
         handler.postDelayed(saveTick, 20_000)
+        scheduleSleep()
 
         updatePlayIcon()
         if (controlsVisible && !locked) showControls(true)
         if (orient != 0) applyOrientation()
+    }
+
+    private val sleepRunnable = Runnable {
+        sleepAtMs = 0
+        player?.pause()
+        flash("Sleep timer: paused")
+    }
+
+    private fun scheduleSleep() {
+        handler.removeCallbacks(sleepRunnable)
+        if (sleepAtMs <= 0) return
+        val left = sleepAtMs - SystemClock.elapsedRealtime()
+        if (left <= 0) sleepRunnable.run() else handler.postDelayed(sleepRunnable, left)
+    }
+
+    private fun showSleepSheet() {
+        val labels = listOf("Off", "15 minutes", "30 minutes", "45 minutes", "60 minutes", "90 minutes")
+        val mins = intArrayOf(0, 15, 30, 45, 60, 90)
+        val cur = if (sleepAtMs <= 0) 0 else -1
+        Sheets.choose(this, "Sleep timer", labels, cur) { i ->
+            sleepAtMs = if (mins[i] == 0) 0 else SystemClock.elapsedRealtime() + mins[i] * 60_000L
+            scheduleSleep()
+            flash(if (mins[i] == 0) "Sleep timer off" else "Pausing in ${mins[i]} min")
+        }
+    }
+
+    private fun showJumpDialog() {
+        val p = player ?: return
+        val input = android.widget.EditText(this).apply {
+            hint = "e.g. 1:23:45 or 12:30"
+            inputType = android.text.InputType.TYPE_CLASS_DATETIME or android.text.InputType.TYPE_DATETIME_VARIATION_TIME
+            setSingleLine()
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Jump to time")
+            .setView(input)
+            .setPositiveButton("Go") { _, _ ->
+                val parts = input.text.toString().trim().split(":").map { it.trim().toLongOrNull() ?: -1L }
+                if (parts.isEmpty() || parts.size > 3 || parts.any { it < 0 }) {
+                    flash("Use mm:ss or hh:mm:ss")
+                } else {
+                    var sec = 0L
+                    for (x in parts) sec = sec * 60 + x
+                    val dur = p.duration
+                    val max = if (dur != C.TIME_UNSET && dur > 0) dur else Long.MAX_VALUE
+                    p.seekTo((sec * 1000).coerceIn(0L, max))
+                    updateProgress()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun saveVideoSettings() {
@@ -777,6 +836,25 @@ class PlayerActivity : AppCompatActivity() {
         player?.prepare()
     }
 
+    private fun friendlyError(e: PlaybackException): String {
+        val c = e.cause
+        if (c is HttpDataSource.InvalidResponseCodeException) {
+            return when (c.responseCode) {
+                401 -> "The server wants a login (401). Add the right headers to this link."
+                403 -> "The server refused access (403). The link may have expired, or it needs custom headers such as a referer or cookie."
+                404 -> "Nothing was found at this link (404). Check the address."
+                410 -> "This link has expired (410). Get a fresh link and paste it again."
+                429 -> "The server says too many requests (429). Wait a bit and retry."
+                else -> "The server answered with an error (${c.responseCode})."
+            }
+        }
+        if (e.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED ||
+            e.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED
+        ) return "This file format isn't supported, or the link isn't a video."
+        if (isNetworkError(e)) return "Can't reach the server. Check your connection."
+        return "Playback failed."
+    }
+
     private fun isNetworkError(e: PlaybackException): Boolean {
         when (e.errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
@@ -862,7 +940,7 @@ class PlayerActivity : AppCompatActivity() {
         if (isFinishing || isDestroyed) return
         MaterialAlertDialogBuilder(this)
             .setTitle("Can't play this link")
-            .setMessage(e.errorCodeName + "\n" + (e.cause?.message ?: e.message ?: ""))
+            .setMessage(friendlyError(e) + "\n\n" + e.errorCodeName + "\n" + (e.cause?.message ?: e.message ?: ""))
             .setCancelable(false)
             .setPositiveButton("Retry") { _, _ ->
                 retryCount = 0
@@ -923,6 +1001,7 @@ class PlayerActivity : AppCompatActivity() {
         findViewById<View>(R.id.btnMore).setOnClickListener { showMoreSheet() }
         btnLock.setOnClickListener { setLocked(true) }
         btnSpeed.setOnClickListener { showSpeedSheet() }
+        posText.setOnClickListener { showJumpDialog() }
         findViewById<View>(R.id.btnSize).setOnClickListener { showSizeSheet() }
         findViewById<View>(R.id.btnRotate).apply {
             setOnClickListener { rotateTap() }
@@ -1024,7 +1103,15 @@ class PlayerActivity : AppCompatActivity() {
     private fun updateClock() {
         val b = batteryInfo()
         val time = DateFormat.getTimeFormat(this).format(Date())
-        clockText.text = if (b.first >= 0) "$time  ·  ${b.first}%" + (if (b.second) " (charging)" else "") else time
+        var text = if (b.first >= 0) "$time  ·  ${b.first}%" + (if (b.second) " (charging)" else "") else time
+        val p = player
+        if (p != null && p.playWhenReady && !p.isCurrentMediaItemLive && p.duration != C.TIME_UNSET && p.duration > 0) {
+            val leftMs = ((p.duration - p.currentPosition) / p.playbackParameters.speed).toLong()
+            if (leftMs > 0) {
+                text += "  ·  ends " + DateFormat.getTimeFormat(this).format(Date(System.currentTimeMillis() + leftMs))
+            }
+        }
+        clockText.text = text
     }
 
     private fun seekRelative(ms: Long) {
@@ -1583,7 +1670,10 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun showMoreSheet() {
-        val labels = listOf("Video quality", "Start from the beginning", "Copy debug report", "Share link")
+        val labels = listOf(
+            "Video quality", "Start from the beginning", "Copy debug report", "Share link",
+            "Sleep timer", "Jump to time"
+        )
         Sheets.choose(this, "More", labels, -1) { i ->
             when (i) {
                 0 -> showTrackSheet(C.TRACK_TYPE_VIDEO, "Video quality", "Auto")
@@ -1598,6 +1688,8 @@ class PlayerActivity : AppCompatActivity() {
                         "Share link"
                     )
                 )
+                4 -> showSleepSheet()
+                5 -> showJumpDialog()
             }
         }
     }
@@ -1693,6 +1785,7 @@ class PlayerActivity : AppCompatActivity() {
         val est = bandwidthMeter?.bitrateEstimate ?: 0L
         if (est > 0) sb.append("Est. link : ").append(Fmt.f("%.1f Mbps", est / 1e6)).append('\n')
         sb.append("Data used : ").append(Fmt.bytes(total)).append('\n')
+        sb.append("Stalls    : ").append(stallCount).append('\n')
 
         val bufMs = p.totalBufferedDuration
         val vf = p.videoFormat

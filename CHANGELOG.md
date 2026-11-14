@@ -4,6 +4,16 @@ All notable changes to StreamLite. The newest section is used as the GitHub rele
 
 ## Unreleased
 
+## 2.4
+
+- **Sleep timer** (More menu): pause after 15 to 90 minutes.
+- **Jump to time:** tap the current time (or More → Jump to time) and type 1:23:45.
+- **Ends at:** the top bar shows when the video will finish ("ends 9:45 PM"), adjusted for playback speed.
+- **Clearer errors:** expired links (410), refused access (403), login needed (401) and others now say what to do.
+- **Stalls counter** in Stats, and a "Watched" label in the library.
+- **Check for updates** button in Settings (only contacts GitHub when you tap it).
+- **Crash report:** if the app ever closes unexpectedly, the next launch offers to copy the error and log.
+
 ## 2.3.1
 
 - **Fix:** videos failed to start in 2.3 with "onTracksSelected not implemented". Playback is restored.
