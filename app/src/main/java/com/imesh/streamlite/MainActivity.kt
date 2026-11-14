@@ -98,7 +98,24 @@ class MainActivity : AppCompatActivity() {
         if (hasFocus) checkClipboard()
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleSend(intent)
+    }
+
     private fun handleSend(i: Intent?) {
+        if (i?.action == Intent.ACTION_PROCESS_TEXT) {
+            // "Play in StreamLite" from the text-selection menu of any app
+            val text = i.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT)?.toString() ?: return
+            val link = LINK_RE.find(text)?.value
+            if (link == null) {
+                Toast.makeText(this, "No link found in the selected text", Toast.LENGTH_SHORT).show()
+            } else {
+                play(link, "")
+            }
+            return
+        }
         if (i?.action == Intent.ACTION_SEND && i.type == "text/plain") {
             val text = i.getStringExtra(Intent.EXTRA_TEXT) ?: return
             input.setText(LINK_RE.find(text)?.value ?: text.trim())

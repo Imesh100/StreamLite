@@ -163,6 +163,10 @@ class PlayerActivity : AppCompatActivity() {
     private var orient = 0
     private var speedIndex = 2
     private var boostPct = 0
+    private var longPress = false
+    private var audioLangSel = ""
+    private var textLangSel = ""
+    private var decoderModeNow = 0
 
     // auto-reconnect
     private var retryCount = 0
@@ -211,6 +215,18 @@ class PlayerActivity : AppCompatActivity() {
         NetStats.bytes.set(0)
         entry = Store.touch(this, url)
         headers = Store.parseHeaders(entry.headers)
+        decoderModeNow = prefDecoderMode
+        var savedResize = -1
+        if (prefRememberVideo) {
+            PerVideo.load(this, url)?.let { v ->
+                if (v.speed in SPEEDS.indices) speedIndex = v.speed
+                savedResize = v.resize
+                subDelayMs = v.subDelayMs
+                boostPct = v.boost
+                audioLangSel = v.audioLang
+                textLangSel = v.textLang
+            }
+        }
 
         val surfaceView = findViewById<PlayerView>(R.id.playerView)
         val textureView = findViewById<PlayerView>(R.id.playerViewTexture)
@@ -235,6 +251,7 @@ class PlayerActivity : AppCompatActivity() {
 
         titleText.text = Store.displayName(entry)
         resizeIndex = prefResizeIndex.coerceIn(0, RESIZE_MODES.size - 1)
+        if (savedResize in RESIZE_MODES.indices) resizeIndex = savedResize
         playerView.resizeMode = RESIZE_MODES[resizeIndex]
         applySubtitleStyle()
 
@@ -245,6 +262,7 @@ class PlayerActivity : AppCompatActivity() {
         orient = if (prefFollowVideo) 4 else 0
 
         setupControls()
+        btnSpeed.text = SPEED_LABELS[speedIndex]
         setupGestures()
         ViewCompat.setOnApplyWindowInsetsListener(controls) { v, insets ->
             val i = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
@@ -341,6 +359,28 @@ class PlayerActivity : AppCompatActivity() {
         return super.onKeyDown(keyCode, event)
     }
 
+    /** Mouse and air-mouse support: moving the pointer shows the controls, the wheel changes volume. */
+    override fun dispatchGenericMotionEvent(ev: MotionEvent): Boolean {
+        if (!locked && !inPip && ev.isFromSource(android.view.InputDevice.SOURCE_MOUSE)) {
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_HOVER_MOVE -> if (!controlsVisible) showControls(true) else scheduleHide()
+                MotionEvent.ACTION_SCROLL -> {
+                    val dy = ev.getAxisValue(MotionEvent.AXIS_VSCROLL)
+                    if (dy != 0f) {
+                        audio.adjustStreamVolume(
+                            AudioManager.STREAM_MUSIC,
+                            if (dy > 0) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER, 0
+                        )
+                        val max = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC).coerceAtLeast(1)
+                        flash("Volume " + (audio.getStreamVolume(AudioManager.STREAM_MUSIC) * 100 / max) + "%")
+                        return true
+                    }
+                }
+            }
+        }
+        return super.dispatchGenericMotionEvent(ev)
+    }
+
     private fun togglePlay() {
         val p = player ?: return
         if (p.playWhenReady && p.playbackState != Player.STATE_ENDED) {
@@ -386,8 +426,10 @@ class PlayerActivity : AppCompatActivity() {
         val tb = trackSelector.buildUponParameters()
         val maxH = RES_HEIGHTS[prefMaxRes.coerceIn(0, RES_HEIGHTS.size - 1)]
         if (maxH > 0) tb.setMaxVideoSize(maxH * 16 / 9, maxH)
-        if (prefAudioLang.isNotBlank()) tb.setPreferredAudioLanguage(prefAudioLang)
-        if (prefTextLang.isNotBlank()) tb.setPreferredTextLanguage(prefTextLang)
+        val aLang = audioLangSel.ifBlank { prefAudioLang }
+        val tLang = textLangSel.ifBlank { prefTextLang }
+        if (aLang.isNotBlank()) tb.setPreferredAudioLanguage(aLang)
+        if (tLang.isNotBlank()) tb.setPreferredTextLanguage(tLang)
         trackSelector.setParameters(tb.build())
 
         // The buffer is limited by size in MB (your setting). Once it is full the app stops
@@ -398,16 +440,17 @@ class PlayerActivity : AppCompatActivity() {
         val bufferMb = minOf(prefBufferMb, capMb)
         if (bufferMb < prefBufferMb) DebugLog.log("buffer limited to $bufferMb MB (device memory)")
         val targetBytes = bufferMb * 1024 * 1024
-        val loadControl = DefaultLoadControl.Builder()
+        val baseLoad = DefaultLoadControl.Builder()
             .setBufferDurationsMs(30 * 60 * 1000, 30 * 60 * 1000, 2_500, 5_000)
             .setTargetBufferBytes(targetBytes)
             .setPrioritizeTimeOverSizeThresholds(false)
             .setBackBuffer(20_000, false)
             .build()
+        val loadControl = PrebufferLoadControl(baseLoad, this) { prefPrebuffer }
 
         val renderers = DefaultRenderersFactory(this)
             .setEnableDecoderFallback(true)
-            .setMediaCodecSelector(Decoders.selector(prefDecoderMode))
+            .setMediaCodecSelector(Decoders.selector(decoderModeNow))
             // Use the built-in software decoders for audio the device itself cannot decode (E-AC3, DTS...)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
         val p = ExoPlayer.Builder(this, renderers)
@@ -519,9 +562,19 @@ class PlayerActivity : AppCompatActivity() {
         if (orient != 0) applyOrientation()
     }
 
+    private fun saveVideoSettings() {
+        if (!prefRememberVideo || url.isBlank()) return
+        PerVideo.save(
+            this, url,
+            PerVideo.Settings(speedIndex, resizeIndex, subDelayMs, boostPct, audioLangSel, textLangSel),
+            prefResizeIndex.coerceIn(0, RESIZE_MODES.size - 1)
+        )
+    }
+
     private fun releasePlayer() {
         val p = player ?: return
         savePosition(p)
+        saveVideoSettings()
         flushUsage()
         resumePos = p.currentPosition
         resumePlay = p.playWhenReady
@@ -784,6 +837,22 @@ class PlayerActivity : AppCompatActivity() {
             p.prepare()
             return
         }
+        val decoderError = when (e.errorCode) {
+            PlaybackException.ERROR_CODE_DECODER_INIT_FAILED,
+            PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED,
+            PlaybackException.ERROR_CODE_DECODING_FAILED,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+            PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED -> true
+            else -> false
+        }
+        if (decoderError && decoderModeNow != Decoders.SOFTWARE_FIRST) {
+            DebugLog.log("decoder error, retrying with software decoders first")
+            decoderModeNow = Decoders.SOFTWARE_FIRST
+            releasePlayer()
+            initPlayer()
+            flash("Switched to software decoder")
+            return
+        }
         if (prefReconnect && isNetworkError(e) && retryCount < MAX_RETRIES) {
             scheduleRetry()
             return
@@ -1003,10 +1072,22 @@ class PlayerActivity : AppCompatActivity() {
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
                 if (locked) {
                     showLockButton()
+                } else if (e.getToolType(0) == MotionEvent.TOOL_TYPE_MOUSE) {
+                    // mouse or air mouse: a click on the picture plays / pauses
+                    togglePlay()
+                    showControls(true)
                 } else {
                     showControls(!controlsVisible)
                 }
                 return true
+            }
+
+            override fun onLongPress(e: MotionEvent) {
+                if (locked || gestureMode != 0 || player == null) return
+                gestureMode = 4
+                longPress = true
+                player?.setPlaybackSpeed(2f)
+                flash("2\u00d7 speed")
             }
 
             override fun onDoubleTap(e: MotionEvent): Boolean {
@@ -1056,6 +1137,11 @@ class PlayerActivity : AppCompatActivity() {
         gestureLayer.setOnTouchListener { _, ev ->
             detector.onTouchEvent(ev)
             if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+                if (longPress) {
+                    longPress = false
+                    player?.setPlaybackSpeed(SPEEDS[speedIndex])
+                    indicator.visibility = View.GONE
+                }
                 if (gestureMode == 1 && seekDeltaMs != 0L && !locked) seekRelative(seekDeltaMs)
                 gestureMode = 0
                 seekDeltaMs = 0
@@ -1403,6 +1489,9 @@ class PlayerActivity : AppCompatActivity() {
             b.setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, opt.index))
         }
         p.trackSelectionParameters = b.build()
+        val lang = g?.getTrackFormat(opt.index)?.language?.takeIf { it != "und" } ?: ""
+        if (type == C.TRACK_TYPE_AUDIO) audioLangSel = lang
+        if (type == C.TRACK_TYPE_TEXT) textLangSel = lang
         DebugLog.log("track select type=$type ${opt.label}")
     }
 
@@ -1431,11 +1520,10 @@ class PlayerActivity : AppCompatActivity() {
                 if (f.bitrate > 0) parts.add(Fmt.f("%.1f Mbps", f.bitrate / 1_000_000.0))
             }
             C.TRACK_TYPE_AUDIO -> {
-                lang?.let { parts.add(it) }
-                f.label?.let { if (it != lang) parts.add(it) }
-                codec(f)?.let { parts.add(it) }
-                if (f.channelCount > 0) parts.add("${f.channelCount}ch")
-                if (f.bitrate > 0) parts.add("${f.bitrate / 1000} kbps")
+                val ln = lang ?: f.label?.takeIf { it.isNotBlank() && it.length <= 24 }
+                ln?.let { parts.add(it) }
+                audioCodecName(f)?.let { parts.add(it) }
+                channelName(f.channelCount)?.let { parts.add(it) }
             }
             else -> {
                 f.label?.let { parts.add(it) }
@@ -1443,6 +1531,33 @@ class PlayerActivity : AppCompatActivity() {
             }
         }
         return if (parts.isEmpty()) "Track" else parts.joinToString(" · ")
+    }
+
+    private fun channelName(n: Int): String? = when {
+        n <= 0 -> null
+        n == 1 -> "Mono"
+        n == 2 -> "Stereo"
+        n == 6 -> "5.1"
+        n == 8 -> "7.1"
+        else -> "${n}ch"
+    }
+
+    private fun audioCodecName(f: Format): String? = when (f.sampleMimeType) {
+        null -> null
+        "audio/ac3" -> "Dolby Digital"
+        "audio/eac3" -> "Dolby Digital+"
+        "audio/eac3-joc" -> "Dolby Atmos"
+        "audio/true-hd" -> "Dolby TrueHD"
+        "audio/vnd.dts" -> "DTS"
+        "audio/vnd.dts.hd" -> "DTS-HD"
+        "audio/vnd.dts.uhd;profile=p2" -> "DTS:X"
+        "audio/mp4a-latm" -> "AAC"
+        "audio/mpeg" -> "MP3"
+        "audio/mpeg-L2" -> "MP2"
+        "audio/opus" -> "Opus"
+        "audio/vorbis" -> "Vorbis"
+        "audio/flac" -> "FLAC"
+        else -> codec(f)
     }
 
     private fun codec(f: Format): String? = f.sampleMimeType?.substringAfter('/')?.uppercase(Locale.US)

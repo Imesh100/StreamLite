@@ -91,3 +91,13 @@ var Context.prefAudioLang: String
 var Context.prefTextLang: String
     get() = sp.getString("text_lang", "") ?: ""
     set(v) = putStr("text_lang", v.trim())
+
+/** Remember speed, zoom, language, subtitle delay and boost for each link. */
+var Context.prefRememberVideo: Boolean
+    get() = sp.getBoolean("remember_video", true)
+    set(v) = putBool("remember_video", v)
+
+/** Keep downloading ahead while paused: 0 always, 1 Wi-Fi only, 2 never. */
+var Context.prefPrebuffer: Int
+    get() = sp.getInt("prebuffer", 1)
+    set(v) = putInt("prebuffer", v)

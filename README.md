@@ -21,6 +21,8 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 - Plays direct links (MP4, MKV, WebM, MOV, TS…) and adaptive streams (**HLS / m3u8, DASH, SmoothStreaming, RTSP**).
 - **Buffer size you control** (in MB) so you can trade memory for smoothness on slow or unstable connections.
 - **Auto-reconnect** when the network drops, with **resume** where you left off.
+- **Keep buffering while paused** (always, Wi-Fi only or never) and **auto-fallback to software decoding** when a hardware decoder fails.
+- Shows up as **Play in StreamLite** in other apps' text-selection and Share menus.
 - **Custom HTTP headers per link** (cookies, referer, user-agent, tokens).
 - Auto-detects a link you just copied; open links from other apps via *Share* or *Open with*.
 
@@ -28,6 +30,7 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 - **Stats panel**: live speed, buffer, data used, resolution, bitrate, dropped frames and a working **FPS meter**.
 - Audio, subtitle and video-quality track selection; preferred languages.
 - Screen modes: **auto, fit, fill, zoom**. Brightness and volume gestures, **volume boost**, playback speed.
+- **Long-press** the picture for 2× speed; speed, zoom, language and subtitle delay are **remembered per video**.
 - **Rotate button**: tap = auto-rotate to fit the video, long-press = rotation menu.
 - **Control lock** to stop accidental touches, **Picture-in-Picture**, screen stays awake while playing.
 - Clock and battery overlay.
@@ -41,6 +44,7 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 - One-tap **debug report** for troubleshooting.
 
 **Design**
+- Mouse and air-mouse support (hover shows controls, click plays/pauses, wheel changes volume).
 - Material 3 dark UI with **System / Dark / AMOLED** themes.
 - Works with an **Android TV remote** (D-pad, play/pause, seek) and appears in the TV launcher.
 

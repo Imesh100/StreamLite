@@ -85,6 +85,13 @@ class SettingsActivity : AppCompatActivity() {
         bindSwitch(R.id.swFollow, prefFollowVideo) { prefFollowVideo = it }
         bindSwitch(R.id.swClip, prefAutoDetect) { prefAutoDetect = it }
         bindSwitch(R.id.swAutoSubs, prefAutoSubs) { prefAutoSubs = it }
+        bindSwitch(R.id.swRemember, prefRememberVideo) { prefRememberVideo = it }
+        val preIds = intArrayOf(R.id.preAlways, R.id.preWifi, R.id.preNever)
+        val preGroup = findViewById<MaterialButtonToggleGroup>(R.id.prebufferGroup)
+        preGroup.check(preIds[prefPrebuffer.coerceIn(0, 2)])
+        preGroup.addOnButtonCheckedListener { _, id, checked ->
+            if (checked) prefPrebuffer = preIds.indexOf(id).coerceAtLeast(0)
+        }
 
         val decIds = intArrayOf(R.id.decAuto, R.id.decSoft, R.id.decHard)
         val decGroup = findViewById<MaterialButtonToggleGroup>(R.id.decoderGroup)

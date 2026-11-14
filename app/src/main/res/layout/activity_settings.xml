@@ -205,6 +205,54 @@
                         android:id="@+id/swClip"
                         style="@style/SL.Switch"
                         android:text="Offer copied links when the app opens" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swRemember"
+                        style="@style/SL.Switch"
+                        android:text="Remember speed, zoom, language and delay for each video" />
+
+                    <TextView
+                        style="@style/SL.Label"
+                        android:layout_marginTop="12dp"
+                        android:text="Keep buffering while paused" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/prebufferGroup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <Button
+                            android:id="@+id/preAlways"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Always" />
+
+                        <Button
+                            android:id="@+id/preWifi"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Wi-Fi only" />
+
+                        <Button
+                            android:id="@+id/preNever"
+                            style="?attr/materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Never" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginTop="8dp"
+                        android:text="When you pause, the app can keep downloading ahead so playback is ready when you resume. Wi-Fi only avoids using mobile data while paused." />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
