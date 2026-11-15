@@ -62,6 +62,23 @@ object SubtitleTools {
         }
     }
 
+    const val MAX_SUBTITLE_BYTES = 2_000_000L
+
+    /** Reads at most [max] bytes. Returns null (and stops reading) if the stream is larger. */
+    fun readCapped(ins: java.io.InputStream, max: Long): ByteArray? {
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(16 * 1024)
+        var total = 0L
+        while (true) {
+            val n = ins.read(buf)
+            if (n < 0) break
+            total += n
+            if (total > max) return null
+            out.write(buf, 0, n)
+        }
+        return out.toByteArray()
+    }
+
     /**
      * For links like https://host/video.mp4 tries video.srt then video.vtt.
      * Blocking: call from a background thread. Returns (text, fileName) or null.
@@ -85,10 +102,15 @@ object SubtitleTools {
                 c.setRequestProperty("User-Agent", headers.entries.firstOrNull { it.key.equals("user-agent", true) }?.value
                     ?: "Mozilla/5.0 (Linux; Android) StreamLite/2.0")
                 for ((k, v) in headers) if (!k.equals("user-agent", true)) c.setRequestProperty(k, v)
-                if (c.responseCode == 200 && c.contentLength < 2_000_000) {
-                    val bytes = c.inputStream.use { it.readBytes() }
+                // Some servers answer every path with 200 and the video itself, often without a size.
+                // Only accept small, text-like answers and never read more than the limit.
+                val type = (c.contentType ?: "").lowercase(Locale.US)
+                val looksLikeMedia = type.startsWith("video/") || type.startsWith("audio/") ||
+                    type.startsWith("image/") || type == "application/octet-stream" && c.contentLengthLong > MAX_SUBTITLE_BYTES
+                if (c.responseCode == 200 && !looksLikeMedia && c.contentLengthLong <= MAX_SUBTITLE_BYTES) {
+                    val bytes = c.inputStream.use { readCapped(it, MAX_SUBTITLE_BYTES) }
                     c.disconnect()
-                    if (bytes.size < 2_000_000) {
+                    if (bytes != null) {
                         val text = decode(bytes)
                         if (text.contains("-->")) return Pair(text, "auto.$ext")
                     }

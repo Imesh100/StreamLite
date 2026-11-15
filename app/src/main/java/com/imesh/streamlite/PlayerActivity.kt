@@ -1615,7 +1615,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         val name = queried ?: uri.lastPathSegment ?: ""
         val text = try {
-            contentResolver.openInputStream(uri)?.use { it.readBytes() }?.let { SubtitleTools.decode(it) }
+            contentResolver.openInputStream(uri)?.use { SubtitleTools.readCapped(it, SubtitleTools.MAX_SUBTITLE_BYTES) }?.let { SubtitleTools.decode(it) }
         } catch (e: Exception) {
             null
         }

@@ -4,6 +4,10 @@ All notable changes to StreamLite. The section for the current version is used a
 
 ## Unreleased
 
+## 1.0.1
+
+- **Fix: out-of-memory crash** when a server answered the automatic subtitle check (`video.srt`) with the whole video. Subtitle downloads are now limited to 2 MB and media responses are ignored.
+
 ## 1.0
 
 First release.
