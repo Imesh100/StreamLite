@@ -5,6 +5,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.OpenableColumns
+import androidx.activity.result.contract.ActivityResultContracts
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -60,6 +62,13 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<TextInputLayout>(R.id.urlLayout).setEndIconOnClickListener { paste() }
         findViewById<View>(R.id.playBtn).setOnClickListener { playFromInput() }
+        findViewById<View>(R.id.fileBtn).setOnClickListener {
+            try {
+                filePicker.launch(arrayOf("video/*", "audio/*", "application/vnd.apple.mpegurl", "audio/x-mpegurl", "audio/mpegurl", "audio/x-scpls", "text/*", "application/octet-stream"))
+            } catch (e: Exception) {
+                Toast.makeText(this, "No file browser found on this device", Toast.LENGTH_LONG).show()
+            }
+        }
         findViewById<View>(R.id.settingsBtn).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -177,6 +186,33 @@ class MainActivity : AppCompatActivity() {
         clipUrl = url
         clipText.text = url
         clipCard.visibility = View.VISIBLE
+    }
+
+    private val filePicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) openLocal(uri)
+    }
+
+    /** A video, audio file or an .m3u/.m3u8/.pls list picked from the device. */
+    private fun openLocal(uri: android.net.Uri) {
+        try {
+            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        } catch (e: Exception) { /* some providers don't offer it */ }
+        var name = ""
+        try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                if (it.moveToFirst()) name = it.getString(0) ?: ""
+            }
+        } catch (e: Exception) { /* name is optional */ }
+        val u = uri.toString()
+        val e = Store.touch(this, u)
+        if (name.isNotBlank() && e.title.isBlank()) e.title = name
+        Store.update(this, e)
+        val low = name.lowercase()
+        val list = low.endsWith(".m3u") || low.endsWith(".m3u8") || low.endsWith(".pls")
+        startActivity(
+            Intent(this, PlayerActivity::class.java).putExtra(PlayerActivity.EXTRA_URL, u)
+                .putExtra(PlayerActivity.EXTRA_PLAYLIST, list)
+        )
     }
 
     private fun playFromInput() {

@@ -4,6 +4,14 @@ All notable changes to StreamLite. The section for the current version is used a
 
 ## Unreleased
 
+## 1.2.0-beta1
+
+Beta, for testing.
+
+- **Fix #5:** coming back from background audio now works for playlists opened from a file on the device. The list is reused instead of being read again, local lists are cached, and live streams no longer resume at a negative position.
+- **Open a file from this device (#6):** new button on the home screen to pick a video, audio file or an .m3u / .m3u8 / .pls list from storage.
+- **Fix #7:** background audio recovers from live stream hiccups (jump back to the live edge), retries more kinds of network errors, and after the retries run out it keeps waiting and resumes by itself when a connection returns.
+
 ## 1.1.0
 
 - **Background audio:** keep listening while you use other apps or with the screen off. Turn on *Keep playing the sound in the background* in Settings, or use **More, Play audio in background** in the player. The video stops (low power), a notification with play, pause, previous, next and stop appears, and the video continues from the same spot when you return. Pauses when headphones are unplugged.

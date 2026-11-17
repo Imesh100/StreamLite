@@ -69,6 +69,7 @@ jobs:
         run: |
           ver=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           echo "VERSION=$ver" >> "$GITHUB_ENV"
+          case "$ver" in *beta*|*rc*|*alpha*) echo "PRE=true" >> "$GITHUB_ENV"; echo "LATEST=false" >> "$GITHUB_ENV" ;; *) echo "PRE=false" >> "$GITHUB_ENV"; echo "LATEST=true" >> "$GITHUB_ENV" ;; esac
           {
             awk -v v="$ver" '$0 ~ "^## "v"$" {f=1; next} /^## /{f=0} f' CHANGELOG.md
             echo
@@ -85,7 +86,8 @@ jobs:
           name: StreamLite v${{ env.VERSION }}
           body_path: notes.md
           files: StreamLite.apk
-          make_latest: true
+          prerelease: ${{ env.PRE }}
+          make_latest: ${{ env.LATEST }}
 
       - name: Publish build status
         if: always()

@@ -36,10 +36,26 @@ object Playlist {
                 readCapped(r.body?.byteStream() ?: throw java.io.IOException("empty"))
             }
         } else {
-            val ins = c.contentResolver.openInputStream(Uri.parse(src)) ?: throw java.io.IOException("cannot open")
-            ins.use { readCapped(it) }
+            readLocal(c, src)
         }
         return String(bytes, Charsets.UTF_8)
+    }
+
+    /**
+     * Local playlists: Android may withdraw read access to a shared file once the screen that received it is
+     * gone, so the last good copy is kept in the app's own cache and used when the original can't be read.
+     */
+    private fun readLocal(c: Context, src: String): ByteArray {
+        val copy = java.io.File(c.cacheDir, "pl_" + key(src) + ".txt")
+        try {
+            val ins = c.contentResolver.openInputStream(Uri.parse(src)) ?: throw java.io.IOException("cannot open")
+            val b = ins.use { readCapped(it) }
+            try { copy.writeBytes(b) } catch (e: Exception) { /* cache is optional */ }
+            return b
+        } catch (e: Exception) {
+            if (copy.exists()) return copy.readBytes()
+            throw e
+        }
     }
 
     private fun readCapped(ins: java.io.InputStream): ByteArray {

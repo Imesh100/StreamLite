@@ -119,6 +119,7 @@ class AudioService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private var retryCount = 0
     private var retryPending = false
+    private var waitingForNetwork = false
     private var netCb: ConnectivityManager.NetworkCallback? = null
     private var startBytes = 0L
     private var started = false
@@ -264,6 +265,7 @@ class AudioService : Service() {
         BackgroundAudio.startPos = pos
         retryCount = 0
         retryPending = false
+        waitingForNetwork = false
         handler.removeCallbacksAndMessages(null)
         val b = MediaItem.Builder().setUri(item.url)
         mimeFor(item.url)?.let { b.setMimeType(it) }
@@ -289,15 +291,24 @@ class AudioService : Service() {
         when (e.errorCode) {
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
             PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
-            PlaybackException.ERROR_CODE_IO_UNSPECIFIED -> return true
+            PlaybackException.ERROR_CODE_IO_UNSPECIFIED,
+            PlaybackException.ERROR_CODE_TIMEOUT -> return true
         }
         val c = e.cause
-        if (c is HttpDataSource.InvalidResponseCodeException) return c.responseCode >= 500 || c.responseCode == 429
-        return false
+        // Live streams often answer 404/410 for a moment while a segment is being rotated, so only
+        // authorisation problems are treated as permanent.
+        if (c is HttpDataSource.InvalidResponseCodeException) return c.responseCode != 401 && c.responseCode != 403
+        return e.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS
     }
 
     private fun onError(e: PlaybackException) {
         DebugLog.log("background audio error ${e.errorCodeName}")
+        if (e.errorCode == PlaybackException.ERROR_CODE_BEHIND_LIVE_WINDOW) {
+            // The live stream moved on while we were away: jump to the live edge and carry on.
+            player?.seekToDefaultPosition()
+            player?.prepare()
+            return
+        }
         val queued = BackgroundAudio.items.size > 1
         val limit = if (queued) 2 else prefMaxRetries
         if (prefReconnect && isNetworkError(e) && retryCount < limit) {
@@ -306,6 +317,13 @@ class AudioService : Service() {
             val delay = minOf(2 shl minOf(retryCount - 1, 3), 15) * 1000L
             handler.removeCallbacksAndMessages(null)
             handler.postDelayed({ retryNow() }, delay)
+            refresh()
+            return
+        }
+        if (prefReconnect && isNetworkError(e) && !queued) {
+            // Out of attempts: stay alive and start again as soon as a network comes back.
+            waitingForNetwork = true
+            retryPending = false
             refresh()
             return
         }
@@ -330,7 +348,15 @@ class AudioService : Service() {
             val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
             val cb = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    handler.post { if (retryPending) retryNow() }
+                    handler.post {
+                        if (retryPending) retryNow()
+                        else if (waitingForNetwork) {
+                            waitingForNetwork = false
+                            retryCount = 0
+                            player?.prepare()
+                            refresh()
+                        }
+                    }
                 }
             }
             cm.registerDefaultNetworkCallback(cb)
@@ -388,7 +414,7 @@ class AudioService : Service() {
         try {
             session?.let { s ->
                 val state = when {
-                    retryPending || p.playbackState == Player.STATE_BUFFERING -> PlaybackState.STATE_BUFFERING
+                    retryPending || waitingForNetwork || p.playbackState == Player.STATE_BUFFERING -> PlaybackState.STATE_BUFFERING
                     playing -> PlaybackState.STATE_PLAYING
                     else -> PlaybackState.STATE_PAUSED
                 }
@@ -424,6 +450,7 @@ class AudioService : Service() {
             this, 0,
             Intent(this, PlayerActivity::class.java)
                 .putExtra(PlayerActivity.EXTRA_URL, BackgroundAudio.openUrl)
+                .putExtra(PlayerActivity.EXTRA_PLAYLIST, BackgroundAudio.playlistUrl.isNotBlank())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
@@ -445,7 +472,7 @@ class AudioService : Service() {
         b.setStyle(style)
             .setSmallIcon(R.drawable.ic_audio)
             .setContentTitle(title)
-            .setContentText(if (retryPending) "Connection lost. Reconnecting…" else "Playing in the background")
+            .setContentText(if (retryPending) "Connection lost. Reconnecting…" else if (waitingForNetwork) "Waiting for a connection…" else "Playing in the background")
             .setContentIntent(open)
             .setOnlyAlertOnce(true)
             .setOngoing(playing)

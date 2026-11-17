@@ -88,6 +88,7 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_URL = "url"
+        const val EXTRA_PLAYLIST = "playlist"
         private const val ACTION_PIP = "com.imesh.streamlite.PIP_TOGGLE"
         private const val MAX_RETRIES = 12
         private val RESIZE_NAMES = listOf("Fit (auto)", "Fill (stretch)", "Zoom (crop)", "Fit width", "Fit height")
@@ -174,6 +175,7 @@ class PlayerActivity : AppCompatActivity() {
     // playlist
     private var queue: List<PlaylistItem> = emptyList()
     private var queueIndex = 0
+    private var localTried = false
     private var playlistUrl = ""
     private var playlistEntry: Entry? = null
     private var playlistPending = false
@@ -230,6 +232,13 @@ class PlayerActivity : AppCompatActivity() {
         volumeControlStream = AudioManager.STREAM_MUSIC
 
         url = intent.getStringExtra(EXTRA_URL) ?: intent.dataString ?: ""
+        intent.data?.let { d ->
+            if (d.scheme == "content") {
+                try {
+                    contentResolver.takePersistableUriPermission(d, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                } catch (e: Exception) { /* not offered by this app, the cached copy is the fallback */ }
+            }
+        }
         if (url.isBlank()) {
             finish()
             return
@@ -280,7 +289,17 @@ class PlayerActivity : AppCompatActivity() {
         setupGestures()
         btnPrev.setOnClickListener { prevItem() }
         btnNext.setOnClickListener { nextItem() }
-        if (Playlist.isPlaylist(url, intent.type)) {
+        val bgItems = BackgroundAudio.items
+        if (BackgroundAudio.active && BackgroundAudio.playlistUrl == url && bgItems.size > 0) {
+            // Coming back from the notification: reuse the list the service is playing, no need to read it again.
+            playlistUrl = url
+            playlistEntry = entry
+            queue = bgItems
+            queueIndex = BackgroundAudio.index.coerceIn(0, bgItems.lastIndex)
+            val multi = if (bgItems.size > 1) View.VISIBLE else View.GONE
+            btnPrev.visibility = multi
+            btnNext.visibility = multi
+        } else if (Playlist.isPlaylist(url, intent.type) || intent.getBooleanExtra(EXTRA_PLAYLIST, false)) {
             playlistUrl = url
             playlistEntry = entry
             loadPlaylist(url)
@@ -317,7 +336,15 @@ class PlayerActivity : AppCompatActivity() {
                 playIndex(back.index, back.pos)
                 return
             }
-            resumePos = back.pos
+            if (back.pos > 0) resumePos = back.pos
+            if (queue.isNotEmpty() && back.index in queue.indices) {
+                queueIndex = back.index
+                url = queue[back.index].url
+                entry = Entry(url = url, title = queue[back.index].title, headers = playlistEntry?.headers ?: "")
+                headers = Store.parseHeaders(entry.headers)
+                applyPerVideo()
+                titleText.text = entry.title + "  (" + (back.index + 1) + "/" + queue.size + ")"
+            }
         }
         if (url.isNotBlank() && !playlistPending) initPlayer()
     }
@@ -698,7 +725,13 @@ class PlayerActivity : AppCompatActivity() {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 playlistPending = false
-                if (items.isEmpty()) {
+                if (items.isEmpty() && !src.startsWith("http") && !localTried) {
+                    // A local file that is not a list of links (for example a real HLS file): play it as is.
+                    localTried = true
+                    playlistUrl = ""
+                    playlistEntry = null
+                    if (started) initPlayer()
+                } else if (items.isEmpty()) {
                     spinner.visibility = View.GONE
                     MaterialAlertDialogBuilder(this)
                         .setTitle("Can't open this playlist")
@@ -805,7 +838,8 @@ class PlayerActivity : AppCompatActivity() {
         val items = if (multi) queue else listOf(PlaylistItem(Store.displayName(entry), url))
         return BackgroundAudio.start(
             this, items, if (multi) queueIndex else 0, if (multi) playlistUrl else "",
-            entry.headers, if (multi) playlistUrl else url, p.currentPosition
+            entry.headers, if (multi) playlistUrl else url,
+            if (p.isCurrentMediaItemLive) 0L else maxOf(0L, p.currentPosition)
         )
     }
 
@@ -1109,7 +1143,7 @@ class PlayerActivity : AppCompatActivity() {
             return
         }
         // A .m3u8 that is really a list of links: load it as a playlist.
-        if (!skipPlaylistCheck && queue.isEmpty() && !triedPlaylist && !playlistPending && url.startsWith("http") &&
+        if (!skipPlaylistCheck && queue.isEmpty() && !triedPlaylist && !playlistPending &&
             (e.errorCode == PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED ||
                 e.errorCode == PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED)
         ) {
