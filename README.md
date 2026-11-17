@@ -5,8 +5,8 @@
 **A lightweight Android video player for streaming any link.**
 Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 
-[![Latest release](https://img.shields.io/github/v/release/Imesh100/StreamLite?label=download&color=4c8bf5)](../../releases/latest)
-[![Build](https://github.com/Imesh100/StreamLite/actions/workflows/build-apk.yml/badge.svg)](../../actions/workflows/build-apk.yml)
+[![Latest release](https://img.shields.io/github/v/release/ImeshN7/StreamLite?label=download&color=4c8bf5)](../../releases/latest)
+[![Build](https://github.com/ImeshN7/StreamLite/actions/workflows/build-apk.yml/badge.svg)](../../actions/workflows/build-apk.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 ![Android 6.0+](https://img.shields.io/badge/Android-6.0%2B-3ddc84)
 ![Android TV](https://img.shields.io/badge/Android%20TV-supported-blue)
@@ -123,4 +123,4 @@ StreamLite is a player only. It does not host, index or provide any content. You
 
 ## License
 
-[MIT](LICENSE) © Imesh100 and StreamLite contributors. Bundled libraries keep their own licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE) © ImeshN7 and StreamLite contributors. Bundled libraries keep their own licenses, see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

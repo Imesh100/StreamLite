@@ -57,7 +57,7 @@ an individual is officially representing the community in public spaces.
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
 reported to the community leaders responsible for enforcement by opening a
 [private security advisory](../../security/advisories/new) on this repository
-or by contacting the maintainer, [@Imesh100](https://github.com/Imesh100),
+or by contacting the maintainer, [@ImeshN7](https://github.com/ImeshN7),
 through GitHub. All complaints will be reviewed and investigated promptly and
 fairly.
 

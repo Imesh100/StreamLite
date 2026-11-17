@@ -261,7 +261,7 @@ class SettingsActivity : AppCompatActivity() {
             var err = ""
             try {
                 val req = okhttp3.Request.Builder()
-                    .url("https://api.github.com/repos/Imesh100/StreamLite/releases/latest")
+                    .url("https://api.github.com/repos/ImeshN7/StreamLite/releases/latest")
                     .header("Accept", "application/vnd.github+json").build()
                 HttpClients.shared.newCall(req).execute().use { r ->
                     if (!r.isSuccessful) throw java.io.IOException("HTTP " + r.code)
