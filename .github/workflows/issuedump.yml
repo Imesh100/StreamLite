@@ -1,0 +1,24 @@
+name: Issue dump
+on:
+  push:
+    branches: [issuedump]
+permissions:
+  contents: write
+  issues: read
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          R=$GITHUB_REPOSITORY
+          mkdir -p /tmp/d && cd /tmp/d
+          gh api "repos/$R/issues?state=all&per_page=100" --jq '.[] | "### #\(.number) [\(.state)] \(.title)\nby \(.user.login) on \(.created_at)\nlabels: \([.labels[].name] | join(", "))\n\n\(.body)\n"' > issues.md
+          for n in $(gh api "repos/$R/issues?state=all&per_page=100" --jq '.[].number'); do
+            echo "--- comments on #$n" >> issues.md
+            gh api "repos/$R/issues/$n/comments" --jq '.[] | "[\(.user.login)] \(.body)\n"' >> issues.md
+          done
+          git init -q; git config user.name gha; git config user.email gha@users.noreply.github.com
+          git add -A; git commit -qm dump
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${R}.git" HEAD:refs/heads/issues-log
