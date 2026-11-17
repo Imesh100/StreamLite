@@ -20,7 +20,8 @@ Paste a URL, press play. Tiny, fast, private and gentle on the battery.
 **Streaming**
 - Plays direct links (MP4, MKV, WebM, MOV, TS…) and adaptive streams (**HLS / m3u8, DASH, SmoothStreaming, RTSP**).
 - **Buffer size you control** (in MB) so you can trade memory for smoothness on slow or unstable connections.
-- **Auto-reconnect** when the network drops, with **resume** where you left off.
+- **Auto-reconnect** when the network drops (you choose how many attempts, up to 9999), with **resume** where you left off.
+- **Background audio:** keep listening with the screen off or while using other apps.
 - **Keep buffering while paused** (always, Wi-Fi only or never) and **auto-fallback to software decoding** when a hardware decoder fails.
 - Shows up as **Play in StreamLite** in other apps' text-selection and Share menus.
 - **Custom HTTP headers per link** (cookies, referer, user-agent, tokens).

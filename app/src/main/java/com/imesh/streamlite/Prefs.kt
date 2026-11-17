@@ -101,3 +101,13 @@ var Context.prefRememberVideo: Boolean
 var Context.prefPrebuffer: Int
     get() = sp.getInt("prebuffer", 1)
     set(v) = putInt("prebuffer", v)
+
+/** Keep playing the sound when the app goes to the background or the screen turns off. */
+var Context.prefBackgroundAudio: Boolean
+    get() = sp.getBoolean("bg_audio", false)
+    set(v) = putBool("bg_audio", v)
+
+/** How many times to retry after the connection drops (1 to 9999). */
+var Context.prefMaxRetries: Int
+    get() = sp.getInt("max_retries", 12).coerceIn(1, 9999)
+    set(v) = putInt("max_retries", v.coerceIn(1, 9999))

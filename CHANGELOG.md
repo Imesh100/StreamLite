@@ -4,6 +4,11 @@ All notable changes to StreamLite. The section for the current version is used a
 
 ## Unreleased
 
+## 1.1.0
+
+- **Background audio:** keep listening while you use other apps or with the screen off. Turn on *Keep playing the sound in the background* in Settings, or use **More, Play audio in background** in the player. The video stops (low power), a notification with play, pause, previous, next and stop appears, and the video continues from the same spot when you return. Pauses when headphones are unplugged.
+- **Reconnect attempts:** choose how many times the player retries after a network drop (1 to 9999, default 12). Each wait is at most 15 seconds, so 999 attempts can cover several hours.
+
 ## 1.0.1
 
 - **Fix: out-of-memory crash** when a server answered the automatic subtitle check (`video.srt`) with the whole video. Subtitle downloads are now limited to 2 MB and media responses are ignored.

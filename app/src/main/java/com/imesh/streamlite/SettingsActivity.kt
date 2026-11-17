@@ -82,6 +82,40 @@ class SettingsActivity : AppCompatActivity() {
 
         bindSwitch(R.id.swResume, prefResume) { prefResume = it }
         bindSwitch(R.id.swReconnect, prefReconnect) { prefReconnect = it }
+        bindSwitch(R.id.swBgAudio, prefBackgroundAudio) {
+            prefBackgroundAudio = it
+            if (it && android.os.Build.VERSION.SDK_INT >= 33 &&
+                checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        val retriesBtn = findViewById<com.google.android.material.button.MaterialButton>(R.id.btnRetries)
+        fun showRetries() { retriesBtn.text = "Reconnect attempts: $prefMaxRetries" }
+        showRetries()
+        retriesBtn.setOnClickListener {
+            val input = android.widget.EditText(this).apply {
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(prefMaxRetries.toString())
+                setSelection(text.length)
+                hint = "1 to 9999"
+            }
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("Reconnect attempts")
+                .setMessage("How many times to retry after the connection drops. Each wait is at most 15 seconds, so 999 attempts can cover several hours.")
+                .setView(input)
+                .setPositiveButton("Save") { _, _ ->
+                    val v = input.text.toString().trim().toIntOrNull()
+                    if (v == null || v < 1) {
+                        Toast.makeText(this, "Enter a number from 1 to 9999", Toast.LENGTH_SHORT).show()
+                    } else {
+                        prefMaxRetries = v
+                        showRetries()
+                    }
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
         bindSwitch(R.id.swPip, prefAutoPip) { prefAutoPip = it }
         bindSwitch(R.id.swFollow, prefFollowVideo) { prefFollowVideo = it }
         bindSwitch(R.id.swClip, prefAutoDetect) { prefAutoDetect = it }
@@ -189,6 +223,10 @@ class SettingsActivity : AppCompatActivity() {
                 "This month: ${Fmt.bytes(DataUsage.thisMonth(this))}\n" +
                 "All time: ${Fmt.bytes(DataUsage.total(this))}"
     }
+
+    private val notifPermission = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { }
 
     private fun setupTools() {
         findViewById<View>(R.id.btnUpdate).setOnClickListener { checkForUpdates() }

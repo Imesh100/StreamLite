@@ -191,6 +191,25 @@
                         style="@style/SL.Switch"
                         android:text="Auto-reconnect when the network drops" />
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRetries"
+                        style="@style/Widget.Material3.Button.TonalButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginBottom="4dp"
+                        android:text="Reconnect attempts" />
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/swBgAudio"
+                        style="@style/SL.Switch"
+                        android:text="Keep playing the sound in the background" />
+
+                    <TextView
+                        style="@style/SL.Hint"
+                        android:layout_marginBottom="8dp"
+                        android:text="When you leave the app or turn the screen off, the sound keeps playing with a notification (no video, low power). You can also start it from the player: More, Play audio in background." />
+
                     <com.google.android.material.materialswitch.MaterialSwitch
                         android:id="@+id/swPip"
                         style="@style/SL.Switch"

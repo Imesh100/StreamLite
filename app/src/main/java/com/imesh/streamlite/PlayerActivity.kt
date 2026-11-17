@@ -179,6 +179,7 @@ class PlayerActivity : AppCompatActivity() {
     private var playlistPending = false
     private var triedPlaylist = false
     private var started = false
+    private var bgOneShot = false
     private var savedResize = -1
     private lateinit var btnPrev: ImageButton
     private lateinit var btnNext: ImageButton
@@ -205,6 +206,12 @@ class PlayerActivity : AppCompatActivity() {
     private var seekDeltaMs = 0L
     private var brightnessF = 0.5f
     private var volumeF = 0f
+
+    private val notifPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        // The sound plays either way; without the permission the notification is just hidden.
+        bgOneShot = true
+        moveTaskToBack(true)
+    }
 
     private val subPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) loadSubtitleUri(uri)
@@ -301,6 +308,17 @@ class PlayerActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         started = true
+        bgOneShot = false
+        val back = BackgroundAudio.takeBack(this)
+        if (back != null) {
+            DebugLog.log("back from background audio at ${back.pos}")
+            resumePlay = back.playing
+            if (queue.isNotEmpty() && back.index in queue.indices && back.index != queueIndex) {
+                playIndex(back.index, back.pos)
+                return
+            }
+            resumePos = back.pos
+        }
         if (url.isNotBlank() && !playlistPending) initPlayer()
     }
 
@@ -308,6 +326,7 @@ class PlayerActivity : AppCompatActivity() {
         super.onStop()
         started = false
         val wasPip = Build.VERSION.SDK_INT >= 26 && isInPictureInPictureMode
+        if (!wasPip && !isFinishing && (prefBackgroundAudio || bgOneShot)) handoffToBackground()
         releasePlayer()
         if (wasPip) finishAndRemoveTask()
     }
@@ -778,6 +797,30 @@ class PlayerActivity : AppCompatActivity() {
         Sheets.choose(this, title, labels, queueIndex - from) { idx -> playIndex(from + idx, 0L) }
     }
 
+    /** Gives the playing video to the background audio service so the sound carries on. */
+    private fun handoffToBackground(): Boolean {
+        val p = player ?: return false
+        if (!p.playWhenReady || p.playbackState == Player.STATE_ENDED || p.playbackState == Player.STATE_IDLE) return false
+        val multi = queue.isNotEmpty()
+        val items = if (multi) queue else listOf(PlaylistItem(Store.displayName(entry), url))
+        return BackgroundAudio.start(
+            this, items, if (multi) queueIndex else 0, if (multi) playlistUrl else "",
+            entry.headers, if (multi) playlistUrl else url, p.currentPosition
+        )
+    }
+
+    private fun startBackgroundNow() {
+        if (player == null) return
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            notifPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            bgOneShot = true
+            moveTaskToBack(true)
+        }
+    }
+
     private fun saveVideoSettings() {
         if (!prefRememberVideo || url.isBlank()) return
         PerVideo.save(
@@ -970,7 +1013,7 @@ class PlayerActivity : AppCompatActivity() {
                 doRetry()
                 return
             }
-            banner.text = "Connection lost. Retrying in ${retryLeft}s ($retryCount/$MAX_RETRIES). Tap to retry now"
+            banner.text = "Connection lost. Retrying in ${retryLeft}s ($retryCount/${prefMaxRetries}). Tap to retry now"
             banner.visibility = View.VISIBLE
             retryLeft--
             handler.postDelayed(this, 1000)
@@ -1114,7 +1157,7 @@ class PlayerActivity : AppCompatActivity() {
             flash("Switched to software decoder")
             return
         }
-        if (prefReconnect && isNetworkError(e) && retryCount < (if (queue.isNotEmpty()) 2 else MAX_RETRIES)) {
+        if (prefReconnect && isNetworkError(e) && retryCount < (if (queue.isNotEmpty()) 2 else prefMaxRetries)) {
             scheduleRetry()
             return
         }
@@ -1858,7 +1901,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun showMoreSheet() {
         val labels = listOf(
             "Video quality", "Start from the beginning", "Copy debug report", "Share link",
-            "Sleep timer", "Jump to time"
+            "Sleep timer", "Jump to time", "Play audio in background"
         ) + (if (queue.isNotEmpty()) listOf("Playlist (${queue.size})") else emptyList())
         Sheets.choose(this, "More", labels, -1) { i ->
             when (i) {
@@ -1876,7 +1919,8 @@ class PlayerActivity : AppCompatActivity() {
                 )
                 4 -> showSleepSheet()
                 5 -> showJumpDialog()
-                6 -> showPlaylistSheet()
+                6 -> startBackgroundNow()
+                7 -> showPlaylistSheet()
             }
         }
     }
