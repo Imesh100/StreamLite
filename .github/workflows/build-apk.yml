@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [main]
+    branches-ignore: [ci-log]
   workflow_dispatch:
 
 permissions:
@@ -52,6 +52,7 @@ jobs:
           fi
 
       - name: Close stale build-error issues
+        if: github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -63,6 +64,7 @@ jobs:
         run: cp app/build/outputs/apk/release/app-release.apk StreamLite.apk
 
       - name: Prepare release notes
+        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           ver=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
@@ -76,6 +78,7 @@ jobs:
           } > notes.md
 
       - name: Publish release
+        if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
@@ -83,3 +86,24 @@ jobs:
           body_path: notes.md
           files: StreamLite.apk
           make_latest: true
+
+      - name: Publish build status
+        if: always()
+        shell: bash
+        run: |
+          rm -rf /tmp/ci && mkdir -p /tmp/ci
+          {
+            echo "sha: ${GITHUB_SHA}"
+            echo "ref: ${GITHUB_REF_NAME}"
+            echo "run: ${GITHUB_RUN_NUMBER}"
+            echo "result: ${{ job.status }}"
+          } > /tmp/ci/status.txt
+          [ -f errs.txt ] && cp errs.txt /tmp/ci/errors.txt || true
+          [ -f build.log ] && tail -120 build.log | cut -c1-300 > /tmp/ci/log-tail.txt || true
+          cd /tmp/ci
+          git init -q
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "build ${GITHUB_RUN_NUMBER} ${GITHUB_REF_NAME}: ${{ job.status }}"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/ci-log || true
