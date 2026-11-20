@@ -4,6 +4,12 @@ All notable changes to StreamLite. The section for the current version is used a
 
 ## Unreleased
 
+## 1.2.0-beta2
+
+Beta, for testing.
+
+- **Rewind live streams:** a live stream or a live-updating recording (for example a Twitch VOD that is still growing) now shows its timestamp and a seek bar, so you can rewind instead of being stuck at the newest part. The right-hand label shows how far behind live you are (for example `-12:30  LIVE`); tap it to jump back to live. Streams that have no rewind window still show `LIVE` only.
+
 ## 1.2.0-beta1
 
 Beta, for testing.

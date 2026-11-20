@@ -1294,6 +1294,13 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         seekBar.max = 1000
+        durText.setOnClickListener {
+            val p = player
+            if (p != null && p.isCurrentMediaItemLive) {
+                p.seekToDefaultPosition()
+                flash("Back to live")
+            }
+        }
         seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar, progress: Int, fromUser: Boolean) {
                 if (!fromUser) return
@@ -1348,10 +1355,12 @@ class PlayerActivity : AppCompatActivity() {
     private fun updateProgress() {
         val p = player ?: return
         val dur = p.duration
-        val live = p.isCurrentMediaItemLive || dur == C.TIME_UNSET || dur <= 0
-        seekBar.isEnabled = !live
+        // A live-updating VOD (or any live stream with a rewind window) has a known length: show it and allow seeking.
+        val seekable = dur != C.TIME_UNSET && dur > 0 && p.isCurrentMediaItemSeekable
+        val live = p.isCurrentMediaItemLive
+        seekBar.isEnabled = seekable
         if (!userSeeking) {
-            if (live) {
+            if (!seekable) {
                 seekBar.progress = 0
                 seekBar.secondaryProgress = 0
             } else {
@@ -1360,7 +1369,14 @@ class PlayerActivity : AppCompatActivity() {
             }
             posText.text = Fmt.time(p.currentPosition)
         }
-        durText.text = if (live) "LIVE" else Fmt.time(dur)
+        durText.text = when {
+            live -> {
+                val off = p.currentLiveOffset
+                if (seekable && off != C.TIME_UNSET && off > 8_000) "-" + Fmt.time(off) + "  LIVE" else "LIVE"
+            }
+            seekable -> Fmt.time(dur)
+            else -> "LIVE"
+        }
     }
 
     private fun updateClock() {
